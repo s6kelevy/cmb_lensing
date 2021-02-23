@@ -156,7 +156,7 @@ def get_cl_tsz_cib(freq1, freq2 = None):
     l, cl_tsz_freq2_freq2 = get_cl_tsz(freq2, freq2)
     l, cl_cib_freq2_freq2 = get_cl_cib(freq2, freq2)
     
-    cl_tsz_cib =  0.1 * ( np.sqrt(cl_tsz_freq1_freq1 * cl_cib_freq2_freq2) + np.sqrt(cl_tsz_freq2_freq2 * cl_cib_freq1_freq1) )
+    cl_tsz_cib =  - 0.1 * ( np.sqrt(cl_tsz_freq1_freq1 * cl_cib_freq2_freq2) + np.sqrt(cl_tsz_freq2_freq2 * cl_cib_freq1_freq1) )
 
     return l, cl_tsz_cib
 
