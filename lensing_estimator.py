@@ -1,0 +1,190 @@
+import numpy as np
+from scipy import signal
+import tools
+from tqdm import tqdm
+import lensing
+import cosmo
+import stats
+import sims
+  
+
+def get_aligned_cutout(mapparams, image, l, cl, cl_noise):
+    _, dx, _, _ = mapparams
+    cutout = tools.central_cutout(mapparams, image, 10)
+    filtered_map = tools.wiener_filter(mapparams, image, l, cl, cl_noise) 
+    filtered_map = tools.low_pass_filter(mapparams, filtered_map, l, 2000)
+    filtered_cutout = tools.central_cutout(mapparams, filtered_map, 6)
+    _, _, magnitude, angle = tools.gradient(filtered_cutout, dx)
+    angle, magnitude_weight = np.median(angle), np.median(magnitude) 
+    rotated_cutout = tools.rotate(cutout, angle)
+    cutout_aligned = rotated_cutout-np.mean(rotated_cutout)
+    return cutout_aligned, magnitude_weight
+    
+    
+    
+    
+def get_random_cutout(mapparams, image):
+    cutout = tools.central_cutout(mapparams, image, 10)
+    cutout_rand = tools.rotate(cutout, random.randint(-180,180))
+    cutout_rand = cutout_rand-np.mean(cutout_rand)
+    return cutout_rand
+    
+    
+    
+      
+def get_stack(cutouts, magnitude_weights = None, noise_weights = None):
+    # stacking weighted cutouts to obtain weighted stacked signal
+    if magnitude_weights is None:
+        magnitude_weights = np.ones(len(cutouts))
+    if noise_weights is None:
+        noise_weights = np.ones(len(cutouts))    
+    weights = np.array(magnitude_weights)*np.array(noise_weights)
+    weighted_cutouts = [cutouts[i]*weights[i] for i in range(len(cutouts))]
+    stack = np.sum(weighted_cutouts, axis = 0)/sum(weights)
+    return stack
+
+
+
+def get_dipole_profile(mapparams, maps_clus, maps_rand,  l, cl, cl_noise, use_magnitude_weights = True, noise_weights = None, correct_for_tsz = False):
+    stacks = []
+    cutouts_aligned = []
+    magnitude_weights = []
+    for i in range(len(maps_clus)):
+        cutout, weight = get_aligned_cutout(mapparams, maps_clus[i], l, cl, cl_noise)
+        cutouts_aligned.append(cutout)
+        magnitude_weights.append(weight)
+    if use_magnitude_weights is False:
+        magnitude_weights = None
+    stack_clus = get_stack(cutouts_aligned, magnitude_weights, noise_weights) 
+    stacks.append(stack_clus)
+    
+    
+    if correct_for_tsz is True:
+        stacks = []
+        cutouts_rand = []
+        for i in range(len(maps_clus)):
+            cutout = get_random_cutout(mapparams, maps_lensed[i])
+            cutouts_rand.append(cutout)
+        stack_rand = get_stack(cutouts_rand, magnitude_weights, noise_weights) 
+        stack_clus = stack_clus - stack_rand
+        stacks.append(stack_clus)
+        stacks.append(stack_rand)
+        
+    
+    cutouts_aligned = []
+    magnitude_weights = []
+    for i in range(len(maps_rand)):
+        cutout, weight = get_aligned_cutout(mapparams, maps_rand[i], l, cl, cl_noise)
+        cutouts_aligned.append(cutout)
+        magnitude_weights.append(weight)
+    if use_magnitude_weights is False:
+        magnitude_weights = None
+    stack_bg = get_stack(cutouts_aligned, magnitude_weights, noise_weights)
+    
+    
+    stack_dipole = stack_clus-stack_bg
+    stacks.append(stack_bg)
+    stacks.append(stack_dipole)
+    
+    
+    _, dx, _, _ = mapparams
+    bins = np.arange((-40*dx)/2, (40*dx)/2, dx)
+    dipole_profile = np.mean(stack_dipole, axis = 0)            
+    
+    
+    return bins, dipole_profile, stacks
+    
+    
+def covariance_matrix(nber_clus, nber_rand, nber_cov, map_params, l, cl, cluster_corr_cutouts = None, cl_extragal = None, bl = None, nl = None, cl_noise = 0, use_magnitude_weights = True, noise_weights = None, correct_for_tsz = False):    
+    sims_for_covariance = []
+    grid, _ = tools.make_grid(map_params)
+    X,Y = grid
+    maps_rand = [1.5*X]
+    for i in tqdm(range(nber_cov)):
+        maps_clus = sims.cmb_mock_data(nber_clus, map_params, l, cl, cluster_corr_cutouts = cluster_corr_cutouts, cl_extragal = cl_extragal, bl = bl, nl = nl)
+        _, dipole_profile, _ = get_dipole_profile(map_params, maps_clus, maps_rand, l, cl, cl_noise, use_magnitude_weights, noise_weights, correct_for_tsz)
+        sims_for_covariance.append(dipole_profile) 
+    nx, dx, ny, dy = map_params
+    nber_pixels = 10/dx
+    cov = stats.covariance_matrix(sims_for_covariance, int(nber_pixels))
+    return cov
+
+
+
+
+def fit_profiles(nber_clus_fit, nber_rand_fit, mapparams, l, cl, mass_int, c, z, centroid_shift = None, cl_uncorr_fg = None, bl = None, nl = None, cl_noise = 0, use_magnitude_weights = True, use_noise_weights = False, apply_noise = True):
+    _, dx, _, _ = mapparams
+    cutouts = []
+    magnitude_weights = []    
+    for i in tqdm(range(nber_rand_fit)):
+        sim = tools.make_gaussian_realization(mapparams, l, cl) 
+        sim_noise = np.copy(sim)
+        if cl_uncorr_fg is not None:
+            extragal_map = tools.make_gaussian_realization(mapparams, l, cl_uncorr_fg)
+            sim_noise += extragal_map
+        if bl is not None:
+            sim = tools.gaussian_filter(mapparams, sim, l, bl)
+            sim_noise = tools.gaussian_filter(mapparams, sim_noise, l, bl)
+        if nl is not None:
+            noise_map = tools.make_gaussian_realization(mapparams, l, nl)
+            sim_noise = sim_noise + noise_map
+        cutout = tools.central_cutout(mapparams, sim, 10)
+        if apply_noise is False:
+            sim_noise = np.copy(sim)
+        filtered_map = tools.wiener_filter(mapparams, sim_noise, l, cl, cl_noise) 
+        filtered_map = tools.low_pass_filter(mapparams, filtered_map, l, 2000)
+        filtered_cutout = tools.central_cutout(mapparams, filtered_map, 6)
+        _, _, magnitude, angle = tools.gradient(filtered_cutout, dx)
+        angle, magnitude_weight = np.median(angle), np.median(magnitude) 
+        rotated_cutout = tools.rotate(cutout, angle)
+        rotated_cutout = rotated_cutout-np.mean(rotated_cutout)
+        cutouts.append(rotated_cutout)
+        magnitude_weights.append(magnitude_weight)
+    if use_magnitude_weights is False:
+        magnitude_weights = np.ones(nber_rand_fit)
+    weighted_cutouts = [cutouts[i]*magnitude_weights[i] for i in range(nber_rand_fit)]
+    unlensed_stack = np.sum(weighted_cutouts, axis = 0)/np.sum(magnitude_weights)
+    
+    
+    alpha_vecs = []
+    for i in tqdm(range(len(mass_int))):
+        kappa = lensing.NFW(mass_int[i], c, z, 1100).kappa_map(mapparams)
+        alpha_vec = lensing.alpha_from_kappa(mapparams, kappa)
+        alpha_vecs.append(alpha_vec)
+    
+    
+    cutouts = []
+    magnitude_weights = []    
+    for i in tqdm(range(nber_clus_fit)):
+        sim = tools.make_gaussian_realization(mapparams, l, cl) 
+        for j in range(len(mass_int)):
+            sim_lensed = lensing.lens_map(mapparams, sim, alpha_vecs[j], centroid_shift)   
+            sim_noise = np.copy(sim_lensed)
+            if cl_uncorr_fg is not None:
+                extragal_map = tools.make_gaussian_realization(mapparams, l, cl_uncorr_fg)
+                sim_noise += extragal_map
+            if bl is not None:
+                sim_lensed = tools.gaussian_filter(mapparams, sim_lensed, l, bl)
+                sim_noise = tools.gaussian_filter(mapparams, sim_noise, l, bl)
+            if nl is not None:
+                noise_map = tools.make_gaussian_realization(mapparams, l, nl)
+                sim_noise += noise_map
+            cutout = tools.central_cutout(mapparams, sim_lensed, 10)
+            filtered_map = tools.wiener_filter(mapparams, sim_noise, l, cl, cl_noise) 
+            filtered_map = tools.low_pass_filter(mapparams, filtered_map, l, 2000)
+            filtered_cutout = tools.central_cutout(mapparams, filtered_map, 6)
+            _, _, magnitude, angle = tools.gradient(filtered_cutout, dx)
+            angle, magnitude_weight = np.median(angle), np.median(magnitude) 
+            rotated_cutout = tools.rotate(cutout, angle)
+            rotated_cutout = rotated_cutout-np.mean(rotated_cutout)
+            if use_magnitude_weights is False:
+                magnitude_weight = 1
+            cutouts.append(rotated_cutout*magnitude_weight)
+            magnitude_weights.append(magnitude_weight)
+    dipole_profile_models = [] 
+    for i in tqdm(range(len(mass_int))):
+        lensed_stack = np.sum(cutouts[i::len(mass_int)], axis = 0)/np.sum(magnitude_weights[i::len(mass_int)])
+        dipole_stack = lensed_stack-unlensed_stack
+        dipole_profile = np.mean(dipole_stack, axis = 0)   
+        dipole_profile_models.append(dipole_profile)
+    return dipole_profile_models
