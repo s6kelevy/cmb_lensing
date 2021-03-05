@@ -10,7 +10,9 @@ import experiments as exp
 import tools
 
 
-
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+import matplotlib
 
 def cmb_mock_data(nber_maps, mapparams, l, cl, cluster = None, centroid_shift = None, cluster_corr_cutouts = None, cl_extragal = None, bl = None, nl = None):
     nx, dx, ny, dy = mapparams
@@ -56,7 +58,7 @@ def cmb_mock_data2(mapparams, l, cl, cluster = None, centroid_shift = None, nber
     sim = tools.make_gaussian_realization(mapparams, l, cl) 
     if cluster is not None:
         sim = lensing.lens_map(mapparams, sim, alpha_vec, centroid_shift = centroid_shift) 
-    sims_ch_arr = [sim for k in range(nber_ch)]
+    sims_ch_arr = [np.copy(sim) for k in range(nber_ch)]
     if cluster_corr_cutouts_arr is not None:
         rand_sel = random.randint(0, len(cluster_corr_cutouts_arr[0])-1)
         rand_ang = random.randint(-180,180)
@@ -79,11 +81,27 @@ def cmb_mock_data2(mapparams, l, cl, cluster = None, centroid_shift = None, nber
     return sims_ch_arr 
 
 
-def cmb_mock_data_dict(freq_arr, mapparams, l, cl, cluster = None, centroid_shift = None, cluster_corr_cutouts_arr = None, cl_extragal_arr = None, bl_arr = None, nl_arr = None):
+def cmb_mock_data_dict(freq_arr, mapparams, l, cl, cluster = None, centroid_shift = None, cluster_corr_cutouts_dict = None, cl_extragal_dict = None, bl_dict = None, nl_dict = None):
     nber_ch = len(freq_arr)
+    if cluster_corr_cutouts_dict is not None:
+        cluster_corr_cutouts_arr = [cluster_corr_cutouts_dict[freq] for freq in sorted(cluster_corr_cutouts_dict.keys() )] 
+    else:
+        cluster_corr_cutouts_arr = None
+    if cl_extragal_dict is not None:
+        cl_extragal_arr = [cl_extragal_dict[freq] for freq in sorted(cl_extragal_dict.keys() )]
+    else:
+        cl_extragal_arr = None
+    if bl_dict is not None:
+        bl_arr = [bl_dict[freq] for freq in sorted(bl_dict.keys() )]
+    else:
+        bl_arr = None
+    if nl_dict is not None:
+        nl_arr = [nl_dict[freq] for freq in sorted(nl_dict.keys() )]
+    else:
+        nl_arr = None
     sims = cmb_mock_data2(mapparams, l, cl, cluster, centroid_shift, nber_ch, cluster_corr_cutouts_arr, cl_extragal_arr, bl_arr, nl_arr)
     map_dic = {}
-    for i, freq in enumerate(freq_arr)
+    for i, freq in enumerate(freq_arr):
         map_dic[freq] = sims[i]
     return map_dic
 

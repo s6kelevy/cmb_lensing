@@ -1,5 +1,6 @@
 import numpy as np
 from scipy import signal
+import random
 import tools
 from tqdm import tqdm
 import lensing
@@ -63,7 +64,7 @@ def get_dipole_profile(mapparams, maps_clus, maps_rand,  l, cl, cl_noise, use_ma
         stacks = []
         cutouts_rand = []
         for i in range(len(maps_clus)):
-            cutout = get_random_cutout(mapparams, maps_lensed[i])
+            cutout = get_random_cutout(mapparams, maps_clus[i])
             cutouts_rand.append(cutout)
         stack_rand = get_stack(cutouts_rand, magnitude_weights, noise_weights) 
         stack_clus = stack_clus - stack_rand
