@@ -83,6 +83,13 @@ def run_ml(data, models, param_int, make_finer = 1, howmanysamples = 1000000, wh
     return likelihood, mean_value, errors
 
 
+def signal_to_noise(likelihood_curve):
+    lnlike = np.log(likelihood_curve)
+    delta_chisq = 2*(max(lnlike) - lnlike[0])
+    snr = np.sqrt(delta_chisq)
+    return snr
+
+
 #################################################################################################################################
 
 

@@ -7,7 +7,9 @@ import lensing
 import cosmo
 import stats
 import sims
-  
+import hlc
+
+
 
 def get_aligned_cutout(mapparams, image, l, cl, cl_noise):
     _, dx, _, _ = mapparams
@@ -111,6 +113,26 @@ def covariance_matrix(nber_clus, nber_rand, nber_cov, map_params, l, cl, cluster
     return cov
 
 
+def covariance_matrix2(nber_clus, nber_rand, nber_cov, freq_arr, map_params, l, cl, cluster_corr_cutouts_dict = None, cl_extragal_dict= None, bl_dict = None, nl_dict = None, cl_noise = 0, use_magnitude_weights = True, noise_weights = None, correct_for_tsz = False):    
+    sims_for_covariance = []
+    for i in tqdm(range(nber_cov)):
+        maps_clus = []
+        for i in range(nber_clus):
+            cmb_maps_dict = sims.cmb_mock_data_dict(freq_arr, map_params, l, cl, cluster_corr_cutouts_dict = cluster_corr_cutouts_dict, cl_extragal_dict = cl_extragal_dict, bl_dict = bl_dict, nl_dict = nl_dict)
+            hlc_map, _ = hlc.hlc_map(cmb_maps_dict, opbeam, map_params, components, experiment)
+            maps_cluse.append(hlc_map)
+    
+        maps_rand = []
+        for i in range(nber_rand):
+            cmb_maps_dict = sims.cmb_mock_data_dict(freq_arr, map_params, l, cl, cl_extragal_dict = cl_extragal_dict, bl_dict = bl_dict, nl_dict = nl_dict)
+            hlc_map, _ = hlc.hlc_map(cmb_maps_dict, opbeam, map_params, components, experiment)
+            maps_rand.append(hlc_map) 
+        _, dipole_profile, _ = get_dipole_profile(map_params, maps_clus, maps_rand, l, cl, cl_noise, use_magnitude_weights, noise_weights, correct_for_tsz)
+        sims_for_covariance.append(dipole_profile) 
+    nx, dx, ny, dy = map_params
+    nber_pixels = 10/dx
+    cov = stats.covariance_matrix(sims_for_covariance, int(nber_pixels))
+    return cov
 
 
 def fit_profiles(nber_clus_fit, nber_rand_fit, mapparams, l, cl, mass_int, c, z, centroid_shift = None, cl_uncorr_fg = None, bl = None, nl = None, cl_noise = 0, use_magnitude_weights = True, use_noise_weights = False, apply_noise = True):
@@ -189,3 +211,80 @@ def fit_profiles(nber_clus_fit, nber_rand_fit, mapparams, l, cl, mass_int, c, z,
         dipole_profile = np.mean(dipole_stack, axis = 0)   
         dipole_profile_models.append(dipole_profile)
     return dipole_profile_models
+
+
+
+
+
+
+def fit_profiles2(nber_clus_fit, nber_rand_fit, mapparams, l, cl, mass_int, c, z, centroid_shift = None, cl_uncorr_fg = None, bl = None, cl_noise = None, use_magnitude_weights = True, use_noise_weights = False, apply_noise = True):
+    _, dx, _, _ = mapparams
+    cutouts = []
+    magnitude_weights = []    
+    for i in tqdm(range(nber_rand_fit)):
+        sim = tools.make_gaussian_realization(mapparams, l, cl) 
+        sim_noise = np.copy(sim)
+        if cl_noise is not None:
+            extragal_map = tools.make_gaussian_realization(mapparams, l, cl_noise)
+            sim_noise += extragal_map
+        if bl is not None:
+            sim = tools.gaussian_filter(mapparams, sim, l, bl)
+            sim_noise = tools.gaussian_filter(mapparams, sim_noise, l, bl)
+        cutout = tools.central_cutout(mapparams, sim, 10)
+        if apply_noise is False:
+            sim_noise = np.copy(sim)
+        filtered_map = tools.wiener_filter(mapparams, sim_noise, l, cl, cl_noise) 
+        filtered_map = tools.low_pass_filter(mapparams, filtered_map, l, 2000)
+        filtered_cutout = tools.central_cutout(mapparams, filtered_map, 6)
+        _, _, magnitude, angle = tools.gradient(filtered_cutout, dx)
+        angle, magnitude_weight = np.median(angle), np.median(magnitude) 
+        rotated_cutout = tools.rotate(cutout, angle)
+        rotated_cutout = rotated_cutout-np.mean(rotated_cutout)
+        cutouts.append(rotated_cutout)
+        magnitude_weights.append(magnitude_weight)
+    if use_magnitude_weights is False:
+        magnitude_weights = np.ones(nber_rand_fit)
+    weighted_cutouts = [cutouts[i]*magnitude_weights[i] for i in range(nber_rand_fit)]
+    unlensed_stack = np.sum(weighted_cutouts, axis = 0)/np.sum(magnitude_weights)
+    
+    
+    alpha_vecs = []
+    for i in tqdm(range(len(mass_int))):
+        kappa = lensing.NFW(mass_int[i], c, z, 1100).kappa_map(mapparams)
+        alpha_vec = lensing.alpha_from_kappa(mapparams, kappa)
+        alpha_vecs.append(alpha_vec)
+    
+    
+    cutouts = []
+    magnitude_weights = []    
+    for i in tqdm(range(nber_clus_fit)):
+        sim = tools.make_gaussian_realization(mapparams, l, cl) 
+        for j in range(len(mass_int)):
+            sim_lensed = lensing.lens_map(mapparams, sim, alpha_vecs[j], centroid_shift)   
+            sim_noise = np.copy(sim_lensed)
+            if cl_noise is not None:
+                extragal_map = tools.make_gaussian_realization(mapparams, l, cl_noise)
+                sim_noise += extragal_map
+            if bl is not None:
+                sim_lensed = tools.gaussian_filter(mapparams, sim_lensed, l, bl)
+                sim_noise = tools.gaussian_filter(mapparams, sim_noise, l, bl)
+            cutout = tools.central_cutout(mapparams, sim_lensed, 10)
+            filtered_map = tools.wiener_filter(mapparams, sim_noise, l, cl, cl_noise) 
+            filtered_map = tools.low_pass_filter(mapparams, filtered_map, l, 2000)
+            filtered_cutout = tools.central_cutout(mapparams, filtered_map, 6)
+            _, _, magnitude, angle = tools.gradient(filtered_cutout, dx)
+            angle, magnitude_weight = np.median(angle), np.median(magnitude) 
+            rotated_cutout = tools.rotate(cutout, angle)
+            rotated_cutout = rotated_cutout-np.mean(rotated_cutout)
+            if use_magnitude_weights is False:
+                magnitude_weight = 1
+            cutouts.append(rotated_cutout*magnitude_weight)
+            magnitude_weights.append(magnitude_weight)
+    dipole_profile_models = [] 
+    for i in tqdm(range(len(mass_int))):
+        lensed_stack = np.sum(cutouts[i::len(mass_int)], axis = 0)/np.sum(magnitude_weights[i::len(mass_int)])
+        dipole_stack = lensed_stack-unlensed_stack
+        dipole_profile = np.mean(dipole_stack, axis = 0)   
+        dipole_profile_models.append(dipole_profile)
+    return dipole_profile_models
+

@@ -126,7 +126,7 @@ def cmb_test_data(nber_maps, validation_analyis = False, clus_position_analysis 
         cutouts_dic = np.load(fname, allow_pickle = 1, encoding= 'latin1')['arr_0'].item()
         mass_z_key = list(cutouts_dic.keys())[0]
         cutouts = cutouts_dic[mass_z_key]
-        scale_fac = fg.compton_y_to_delta_Tcmb(150, uK = True)
+        scale_fac = fg.compton_y_to_delta_Tcmb(145, uK = True)
         tsz_cutouts, ksz_cutouts, tsz_ksz_cutouts  = [], [], []
         for kcntr, keyname in enumerate( cutouts ):
             tsz_cutout = cutouts[keyname]['y']*scale_fac

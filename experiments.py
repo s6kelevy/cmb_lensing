@@ -2,69 +2,47 @@ import numpy as np
 import tools
 
 
-def specs(experiment = 'spt3g'):
-    if experiment == 'spt3g':
+def specs(experiment): 
+    if experiment == 's4wide':
         specs_dic = {
-            #freq: [beam_arcmins, white_noise, red_noise, elknee_T, alphaknee_T] 
-            90:  [1.7, 3.0, 3.0, 1200, -3],
-            150: [1.2, 2.2, 2.2, 2200, -4], 
-            220: [1.0, 8.8, 8.8, 2300, -4],
+            #freq: [beam_arcmins, white_noise, red_noise, elknee, alphaknee]              
+            27: [7.4, 21.5, 21.5, 415, -3.5],
+            39: [5.1, 11.9, 11.9, 391, -3.5], 
+            93: [2.2, 1.9, 1.9, 1932, -3.5],
+            145: [1.4, 2.1, 2.1, 3917, -3.5],
+            225: [0.9, 6.9, 6.9, 6740, -3.5],
+            278: [0.7, 16.8, 16.8, 6792, -3.5],
+            }   
+        corr_noise_bands = {27:[39], 39:[27], 93:[145], 145:[93], 225: [278], 278: [225]}
+        rho = 0.9
+        
+    if experiment == 'so':
+        specs_dic = {
+            #freq: [beam_arcmins, white_noise, red_noise, elknee, alphaknee] 
+            27:  [7.4, 52.1, 6.1,  1000, -3.5],
+            39:  [5.1, 27.1, 3.8,  1000, -3.5], 
+            93:  [2.2, 5.8,  9.3,  1000, -3.5],
+            145: [1.4, 6.5,  23.8, 1000, -3.5],
+            225: [1.0, 15.0, 80.0, 1000, -3.5],
+            280: [0.9, 37.0, 108.0, 1000, -3.5],
             }
-        corr_noise = 0
-        corr_noise_bands = {90:[90], 150:[150], 220: [220]}
-        rho = 1
-      
-        
-    else:    
-        if experiment == 's4wide':
-            specs_dic = {
-                #freq: [beam_arcmins, white_noise, red_noise, elknee, alphaknee] 
-                #30:  [7.3, 21.8, 21.8, 471,  -3.5],
-                #40:  [5.5, 12.4, 12.4, 428,  -3.5], 
-                #95:  [2.3, 2.0,  2.0,  2154, -3.5],
-                #145: [1.5, 2.0,  2.0,  4364, -3.5],
-                #220: [1.0, 6.9,  6.9,  7334, -3.5],
-                #270: [0.8, 16.7, 16.7, 7308, -3.5],
-                           
-                27: [7.4, 21.34, 21.34, 415., -3.5],
-                39: [5.1, 11.67, 11.67, 391., -3.5], 
-                93: [2.2, 1.89, 1.89, 1932., -3.5],
-                145: [1.4, 2.09, 2.09, 3917., -3.5],
-                225: [1.0, 6.90, 6.90, 6740., -3.5],
-                278: [0.9, 16.88, 16.88, 6792., -3.5],
-                }   
-            #corr_noise_bands = {30:[40], 40:[30], 95:[145], 145:[95], 220: [270], 270: [220]}
-            corr_noise_bands = {27:[39], 39:[27], 93:[145], 145:[93], 225: [278], 278: [225]}
-            rho = 0.9
-         
-        if experiment == 'ccatp':
-            specs_dic = {
-                #freq: [beam_arcmins, white_noise, red_noise, elknee, alphaknee] 
-                220: [0.95, 14.6,     434.8,     1000, -3.5],
-                280: [0.75, 27.5,     1140.2,    1000, -3.5], 
-                350: [0.58, 104.8,    5648.8,    1000, -3.5],
-                410: [0.50, 376.6,    14174.2,   1000, -3.5],
-                }
-            corr_noise_bands = {220: [220], 280:[280], 350:[350], 410:[410]}   
-            rho = 1
-        
-        if experiment == 'so':
-            specs_dic = {
-                #freq: [beam_arcmins, white_noise, red_noise, elknee, alphaknee] 
-                27:  [7.4, 52.1, 34377.5,  1000, -3.5],
-                39:  [5.1, 27.1, 21468.7,  1000, -3.5], 
-                93:  [2.2, 5.8,  52136.0,  1000, -3.5],
-                145: [1.4, 6.5,  133143.4, 1000, -3.5],
-                225: [1.0, 15.0, 448227.3, 1000, -3.5],
-                280: [0.9, 37.0, 605277.8, 1000, -3.5],
-                }
-            corr_noise_bands = {27:[27], 39:[39], 93:[93], 145:[145], 225: [225], 280: [280]}
-            rho = 1
-       
+        corr_noise_bands = {27:[39], 39:[27], 93:[145], 145:[93], 225: [280], 280: [225]}
+        rho = 0.9
+            
+    if experiment == 'ccatp':
+        specs_dic = {
+            #freq: [beam_arcmins, white_noise, red_noise, elknee, alphaknee] 
+            220: [0.95, 14.6,     0.07,     1000, -3.5],
+            280: [0.75, 27.5,     0.19,    1000, -3.5], 
+            350: [0.58, 104.8,    0.94,    1000, -3.5],
+            410: [0.50, 376.6,    2.4,   1000, -3.5],
+            }
+        corr_noise_bands = {220: [220], 280:[280], 350:[350], 410:[410]}   
+        rho = 0.9
     return specs_dic, corr_noise_bands, rho
 
 
-def frequencies(experiment = 'spt3g'):
+def frequencies(experiment):
     specs_dic, _, _ = specs(experiment)
     freq_arr = sorted( specs_dic.keys() )
     return freq_arr
@@ -78,16 +56,15 @@ def beam_power_spectrum(beam_fwhm):
     return l, bl
 
 
-def beam_power_spectrum_dict(experiment = 'spt3g', opbeam = None):
+def beam_power_spectrum_dict(experiment, opbeam = None):
     specs_dic, _, _ = specs(experiment)
     freq_arr = sorted( specs_dic.keys() )
     bl_dic = {}
     for freq in freq_arr:
         beam_fwhm, noiseval_white, noiseval_red, elknee, alphaknee = specs_dic[freq]
-        l, bl = beam_power_spectrum(beam_fwhm)
-        bl_dic[freq] = bl
+        l, bl_dic[freq] = beam_power_spectrum(beam_fwhm)
     if opbeam is not None:
-        bl_dic['effective'] = beam_power_spectrum(opbeam)
+        l, bl_dic['effective'] = beam_power_spectrum(opbeam)
     return l, bl_dic
 
 
@@ -108,7 +85,6 @@ def rebeam(bl_dic, threshold = 1000.):
         currinvbeamval[currinvbeamval>threshold] = threshold
         rebeamval = bl_eff * currinvbeamval
         rebeam_arr.append( rebeamval )
-
     return np.asarray( rebeam_arr )
 
 
@@ -148,7 +124,7 @@ def noise_power_spectrum(noiseval_white, noiseval_red = None, elknee = -1, alpha
     return l, nl
 
 
-def noise_power_spectra_dict(experiment = 'spt3g', deconvolve = False, use_cross_noise = False):
+def noise_power_spectra_dict(experiment, deconvolve = False, use_cross_noise = False):
     # reading in experiment specs
     specs_dic, corr_noise_bands, rho = specs(experiment)
     freq_arr = sorted( specs_dic.keys() )

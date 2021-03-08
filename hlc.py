@@ -1,13 +1,13 @@
 import numpy as np
 import foregrounds as fg
 import experiments as exp
-
+import tools
 
 
 def power_spectra_dic(map_dic = None, mapparams = None, components = 'all', experiment = 'spt3g'):
     if map_dic is None:
         # creating total power spectra dictionary
-        specs_dic, corr_noise, corr_noise_bands, rho = exp.specs(experiment)
+        specs_dic, corr_noise_bands, rho = exp.specs(experiment)
         freq_arr = sorted( specs_dic.keys() )
         l, nl_dic = exp.noise_power_spectra_dict(experiment, deconvolve = True, use_cross_noise = True)
         cl_dic = {}
@@ -45,7 +45,7 @@ def power_spectra_dic(map_dic = None, mapparams = None, components = 'all', expe
                 cl = np.concatenate( (np.zeros(lmin), cl) )
                 cl[np.isnan(cl)] = 0.
                 cl[np.isinf(cl)] = 0.
-                cl_dic[(freq1, freq2)] = cl           
+                cl_dic[(freq1, freq2)] = cl       
     return l, cl_dic
 
 
@@ -73,7 +73,7 @@ def get_clinv(clmat):
 
 def residuals_and_weights(map_dic = None, mapparams = None, components = 'all', experiment = 'spt3g', cov_from_sims = True): 
     if cov_from_sims is True:
-        specs_dic, corr_noise, corr_noise_bands, rho = exp.specs(experiment)
+        specs_dic, corr_noise_bands, rho = exp.specs(experiment)
         freq_arr = sorted(specs_dic.keys() )   
         l, cl_dic = power_spectra_dic(components = components, experiment = experiment)
     else:
@@ -122,7 +122,7 @@ def residuals_and_weights(map_dic = None, mapparams = None, components = 'all', 
                 l, cl_tsz_cib = fg.extragalactic_power_spectrum(freq1, freq2, components = ['tsz_cib'])
                 cl_tsz_cib_dic[(freq1, freq2)] = cl_tsz_cib_dic[(freq2, freq1)] = cl_tsz_cib 
     
-    l, nl_dic = exp.noise_power_spectra_dict(experiment)   
+    l, nl_dic = exp.noise_power_spectra_dict(experiment, deconvolve = True, use_cross_noise = True)   
     signal_arr = components + ['noise']    
     res_ilc_dic = {}
     for i in range(len(l)):
@@ -164,17 +164,17 @@ def hlc_map(map_dic, opbeam, mapparams, components = 'all', experiment = 'spt3g'
        
     
     # obtaining weights     
-    residual_and_weights = residual_and_weights(map_dic, mapparams, components, experiment, cov_from_sims) 
-    l, cl_residual, res_ilc_dic, weights_arr = residual_and_weights
+    res_weights = residuals_and_weights(map_dic, mapparams, components, experiment, cov_from_sims) 
+    l, cl_residual, res_ilc_dic, weights_arr = res_weights
     # rebeaming
     l, bl_dic = exp.beam_power_spectrum_dict(experiment, opbeam)
     bl_rebeam_arr = exp.rebeam(bl_dic)
-    
+
     # computing 2D versions 
     grid, _ = tools.make_grid(mapparams, Fourier = True)
     weights_arr_2D = []
     for currW in weights_arr:
-        l = np.arange(len(currW))
+        l = np.arange(len(currW)) 
         currW_2D = tools.interpolate_to_2d(grid, l, currW)
         weights_arr_2D.append(currW_2D)
     weights_arr_2D = np.asarray( weights_arr_2D )
@@ -194,14 +194,14 @@ def hlc_map(map_dic, opbeam, mapparams, components = 'all', experiment = 'spt3g'
     weighted_maps_arr = []
     for mm in range(len(map_arr)):
         curr_map = map_arr[mm]
-        rebeamed_weightsarr[mm][np.isnan(weightsarr[mm])]=0.
-        rebeamed_weightsarr[mm][np.isinf(weightsarr[mm])]=0.
+        rebeamed_weights_arr[mm][np.isnan(rebeamed_weights_arr[mm])]=0.
+        rebeamed_weights_arr[mm][np.isinf(rebeamed_weights_arr[mm])]=0.
         map_weighted = np.fft.fft2(curr_map) * rebeamed_weights_arr[mm]
-        weighted_maps_arr.append(weighted_map)
+        weighted_maps_arr.append(map_weighted)
 
     hlc_map_fft = np.sum(weighted_maps_arr, axis = 0)
 
     hlc_map = np.fft.ifft2(hlc_map_fft).real
 
-    return hlc_map, residuals_and_weights
+    return hlc_map, res_weights
 
