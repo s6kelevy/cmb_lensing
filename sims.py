@@ -10,42 +10,7 @@ import experiments as exp
 import tools
 
 
-import matplotlib.pyplot as plt
-import matplotlib.cm as cm
-import matplotlib
-
-def cmb_mock_data(nber_maps, mapparams, l, cl, cluster = None, centroid_shift = None, cluster_corr_cutouts = None, cl_extragal = None, bl = None, nl = None):
-    nx, dx, ny, dy = mapparams
-    sims = []
-    if cluster is not None:
-        M, c, z = cluster
-        kappa = lensing.NFW(M, c, z, 1100).kappa_map(mapparams)
-        alpha_vec = lensing.alpha_from_kappa(mapparams, kappa)
-    if cluster_corr_cutouts is not None:
-        cluster_corr_cutout = cluster_corr_cutouts[0]
-        nx_cutout, ny_cutout = cluster_corr_cutout.shape[0], cluster_corr_cutout.shape[1]
-        s, e = int((nx-nx_cutout)/2), int((ny+ny_cutout)/2)
-    for i in range(nber_maps):
-        sim = tools.make_gaussian_realization(mapparams, l, cl) 
-        if cluster is not None:
-            sim = lensing.lens_map(mapparams, sim, alpha_vec, centroid_shift = centroid_shift)
-        if cluster_corr_cutouts is not None:
-            cluster_corr_cutout = tools.rotate(cluster_corr_cutouts[random.randint(0, len(cluster_corr_cutouts)-1)], random.randint(-180,180))
-            sim[s:e, s:e] = sim[s:e, s:e]+cluster_corr_cutout    
-        if cl_extragal is not None:
-            extragal_map = tools.make_gaussian_realization(mapparams, l, cl_extragal)
-            sim += extragal_map
-        if bl is not None:
-            sim = tools.gaussian_filter(mapparams, sim, l, bl)
-        if nl is not None:
-            noise_map = tools.make_gaussian_realization(mapparams, l, nl)
-            sim += noise_map
-        sims.append(sim)
-    return sims   
-
-
-
-def cmb_mock_data2(mapparams, l, cl, cluster = None, centroid_shift = None, nber_ch = 1, cluster_corr_cutouts_arr = None, cl_extragal_arr = None, bl_arr = None, nl_arr = None):
+def cmb_mock_data(mapparams, l, cl, cluster = None, centroid_shift = None, nber_ch = 1, cluster_corr_cutouts_arr = None, cl_extragal_arr = None, bl_arr = None, nl_arr = None):
     nx, dx, ny, dy = mapparams
     if cluster is not None:
         M, c, z = cluster
