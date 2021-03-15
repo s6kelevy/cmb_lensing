@@ -1,8 +1,13 @@
+# importing relevant modules
 import numpy as np
 import tools
 
 
+#################################################################################################################################
+
+
 def specs(experiment): 
+    
     if experiment == 's4wide':
         specs_dic = {
             #freq: [beam_arcmins, white_noise, red_noise, elknee, alphaknee]              
@@ -32,12 +37,19 @@ def specs(experiment):
     if experiment == 'ccatp':
         specs_dic = {
             #freq: [beam_arcmins, white_noise, red_noise, elknee, alphaknee] 
-            220: [0.95, 14.6,     0.07,     1000, -3.5],
-            280: [0.75, 27.5,     0.19,    1000, -3.5], 
-            350: [0.58, 104.8,    0.94,    1000, -3.5],
-            410: [0.50, 376.6,    2.4,   1000, -3.5],
+            27:  [7.4, 52.1, 6.1,  1000, -3.5],
+            39:  [5.1, 27.1, 3.8,  1000, -3.5], 
+            93:  [2.2, 5.8,  9.3,  1000, -3.5],
+            145: [1.4, 6.5,  23.8, 1000, -3.5],
+            225: [1.0, 15.0, 80.0, 1000, -3.5],
+            280: [0.9, 37.0, 108.0, 1000, -3.5],
+            220: [0.95, 14.6, 0.07, 1000, -3.5],
+            280: [0.75, 27.5, 0.19, 1000, -3.5], 
+            350: [0.58, 104.8, 0.94, 1000, -3.5],
+            410: [0.50, 376.6, 2.4, 1000, -3.5],
             }
-        corr_noise_bands = {220: [220], 280:[280], 350:[350], 410:[410]}   
+        corr_noise_bands = {27:[39], 39:[27], 93:[145], 145:[93], 225: [280], 280: [225], 220: [220], 280:[280], 350:[350], 
+                            410:[410]}   
         rho = 0.9
     return specs_dic, corr_noise_bands, rho
 
@@ -142,6 +154,7 @@ def noise_power_spectrum(noiseval_white, noiseval_red = None, elknee = -1, alpha
 
 
 def noise_power_spectra_dict(experiment, deconvolve = False, use_cross_noise = False):
+    
     # reading in experiment specs
     specs_dic, corr_noise_bands, rho = specs(experiment)
     freq_arr = sorted( specs_dic.keys() )
@@ -154,7 +167,7 @@ def noise_power_spectra_dict(experiment, deconvolve = False, use_cross_noise = F
         elknee_arr.append(elknee)
         alphaknee_arr.append(alphaknee) 
       
-    # creating beam deconvolved noise power spectra dictionary
+    # creating noise power spectra dictionary
     nl_dic = {}
     for i in range(len(freq_arr)):
         beam_fwhm1, noiseval_white1, noiseval_red1, elknee1, alphaknee1  = beam_arr[i], whitenoise_arr[i], rednoise_arr[i], elknee_arr[i],  alphaknee_arr[i]
@@ -167,7 +180,8 @@ def noise_power_spectra_dict(experiment, deconvolve = False, use_cross_noise = F
                     l, nl =  noise_power_spectrum(noiseval_white1, noiseval_red1, elknee1, alphaknee1, beam_fwhm1)
             else:
                 if freq_arr[j] in corr_noise_bands[freq_arr[i]]: 
-                    l, nl = noise_power_spectrum(noiseval_white1, noiseval_red1, elknee1, alphaknee1, beam_fwhm1, noiseval_red2, elknee2, alphaknee2, rho)
+                    l, nl = noise_power_spectrum(noiseval_white1, noiseval_red1, elknee1, alphaknee1, beam_fwhm1, noiseval_red2, 
+                                                 elknee2, alphaknee2, rho)
                 else:
                     l = np.arange(10000)
                     nl = np.zeros( len(l) )

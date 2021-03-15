@@ -1,3 +1,4 @@
+# importing relevant modules
 import numpy as np
 from scipy import signal
 import random
@@ -11,16 +12,18 @@ import hlc
 
 
 
-def get_aligned_cutout(mapparams, image, l, cl, cl_noise):
-    _, dx, _, _ = mapparams
-    cutout = tools.central_cutout(mapparams, image, 10)
-    filtered_map = tools.wiener_filter(mapparams, image, l, cl, cl_noise) 
-    filtered_map = tools.low_pass_filter(mapparams, filtered_map, l, 2000)
-    filtered_cutout = tools.central_cutout(mapparams, filtered_map, 6)
+def get_aligned_cutout(map_params, image, l, cl, cl_noise):
+    _, dx, _, _ = map_params
+    cutout = tools.central_cutout(map_params, image, 10)
+    wiener_filter = tools.wiener_filter(l, cl, cl_noise)
+    filtered_map = tools.convolve(image, l, wiener_filter, map_params) 
+    low_pass_filter = tools.low_pass_filter(l, 2000)
+    filtered_map = tools.convolve(filtered_map, l, low_pass_filter, map_params) 
+    filtered_cutout = tools.central_cutout(map_params, filtered_map, 6)
     _, _, magnitude, angle = tools.gradient(filtered_cutout, dx)
     angle, magnitude_weight = np.median(angle), np.median(magnitude) 
     rotated_cutout = tools.rotate(cutout, angle)
-    cutout_aligned = rotated_cutout-np.mean(rotated_cutout)
+    cutout_aligned = rotated_cutout-np.median(rotated_cutout)
     return cutout_aligned, magnitude_weight
     
     
@@ -136,32 +139,34 @@ def covariance_matrix2(nber_clus, nber_rand, nber_cov, freq_arr, map_params, l, 
     return cov
 
 
-def fit_profiles(nber_clus_fit, nber_rand_fit, mapparams, l, cl, mass_int, c, z, centroid_shift = None, cl_uncorr_fg = None, bl = None, nl = None, cl_noise = 0, use_magnitude_weights = True, use_noise_weights = False, apply_noise = True):
+def fit_profiles(nber_clus_fit, nber_rand_fit, map_params, l, cl, mass_int, c, z, centroid_shift = None, cl_uncorr_fg = None, bl = None, nl = None, cl_noise = 0, use_magnitude_weights = True, use_noise_weights = False, apply_noise = True):
     _, dx, _, _ = mapparams
     cutouts = []
     magnitude_weights = []    
     for i in tqdm(range(nber_rand_fit)):
-        sim = tools.make_gaussian_realization(mapparams, l, cl) 
+        sim = tools.make_gaussian_realization(map_params, l, cl) 
         sim_noise = np.copy(sim)
         if cl_uncorr_fg is not None:
-            extragal_map = tools.make_gaussian_realization(mapparams, l, cl_uncorr_fg)
+            extragal_map = tools.make_gaussian_realization(map_params, l, cl_uncorr_fg)
             sim_noise += extragal_map
         if bl is not None:
-            sim = tools.gaussian_filter(mapparams, sim, l, bl)
-            sim_noise = tools.gaussian_filter(mapparams, sim_noise, l, bl)
+            sim = tools.convolve(sim, l, np.sqrt(bl), map_params)
+            sim_noise = tools.convolve(sim_noise, l, np.sqrt(bl), map_params)
         if nl is not None:
             noise_map = tools.make_gaussian_realization(mapparams, l, nl)
             sim_noise = sim_noise + noise_map
         cutout = tools.central_cutout(mapparams, sim, 10)
         if apply_noise is False:
             sim_noise = np.copy(sim)
-        filtered_map = tools.wiener_filter(mapparams, sim_noise, l, cl, cl_noise) 
-        filtered_map = tools.low_pass_filter(mapparams, filtered_map, l, 2000)
+        wiener_filter = tools.wiener_filter(l, cl, cl_noise)
+        filtered_map = tools.convolve(sim_noise, l, wiener_filter, map_params) 
+        low_pass_filter = tool.low_pass_filter(l, 2000)
+        filtered_map = tools.convolve(filtered_map, l, low_pass_filter, map_params) 
         filtered_cutout = tools.central_cutout(mapparams, filtered_map, 6)
         _, _, magnitude, angle = tools.gradient(filtered_cutout, dx)
         angle, magnitude_weight = np.median(angle), np.median(magnitude) 
         rotated_cutout = tools.rotate(cutout, angle)
-        rotated_cutout = rotated_cutout-np.mean(rotated_cutout)
+        rotated_cutout = rotated_cutout-np.median(rotated_cutout)
         cutouts.append(rotated_cutout)
         magnitude_weights.append(magnitude_weight)
     if use_magnitude_weights is False:
@@ -188,19 +193,21 @@ def fit_profiles(nber_clus_fit, nber_rand_fit, mapparams, l, cl, mass_int, c, z,
                 extragal_map = tools.make_gaussian_realization(mapparams, l, cl_uncorr_fg)
                 sim_noise += extragal_map
             if bl is not None:
-                sim_lensed = tools.gaussian_filter(mapparams, sim_lensed, l, bl)
-                sim_noise = tools.gaussian_filter(mapparams, sim_noise, l, bl)
+                sim_lensed = tools.convolve(sim_lensed, l, np.sqrt(bl), map_params = map_params)
+                sim_noise = tools.convolve(sim_noise, l, np.sqrt(bl), map_params = map_params)
             if nl is not None:
                 noise_map = tools.make_gaussian_realization(mapparams, l, nl)
                 sim_noise += noise_map
             cutout = tools.central_cutout(mapparams, sim_lensed, 10)
-            filtered_map = tools.wiener_filter(mapparams, sim_noise, l, cl, cl_noise) 
-            filtered_map = tools.low_pass_filter(mapparams, filtered_map, l, 2000)
+            wiener_filter = tools.wiener_filter(l, cl, cl_noise)
+            filtered_map = tools.convolve(sim_noise, l, wiener_filter, map_params) 
+            low_pass_filter = tool.low_pass_filter(l, 2000)
+            filtered_map = tools.convolve(filtered_map, l, low_pass_filter, map_params) 
             filtered_cutout = tools.central_cutout(mapparams, filtered_map, 6)
             _, _, magnitude, angle = tools.gradient(filtered_cutout, dx)
             angle, magnitude_weight = np.median(angle), np.median(magnitude) 
             rotated_cutout = tools.rotate(cutout, angle)
-            rotated_cutout = rotated_cutout-np.mean(rotated_cutout)
+            rotated_cutout = rotated_cutout-np.median(rotated_cutout)
             if use_magnitude_weights is False:
                 magnitude_weight = 1
             cutouts.append(rotated_cutout*magnitude_weight)
@@ -229,18 +236,19 @@ def fit_profiles2(nber_clus_fit, nber_rand_fit, mapparams, l, cl, mass_int, c, z
             extragal_map = tools.make_gaussian_realization(mapparams, l, cl_noise)
             sim_noise += extragal_map
         if bl is not None:
-            sim = tools.gaussian_filter(mapparams, sim, l, bl)
-            sim_noise = tools.gaussian_filter(mapparams, sim_noise, l, bl)
+            sim = tools.convolve(sim, l, np.sqrt(bl), map_params = map_params)
+            sim_noise = tools.convolve(sim_noise, l, np.sqrt(bl), map_params = map_params)
         cutout = tools.central_cutout(mapparams, sim, 10)
         if apply_noise is False:
             sim_noise = np.copy(sim)
-        filtered_map = tools.wiener_filter(mapparams, sim_noise, l, cl, cl_noise) 
-        filtered_map = tools.low_pass_filter(mapparams, filtered_map, l, 2000)
-        filtered_cutout = tools.central_cutout(mapparams, filtered_map, 6)
+        wiener_filter = tools.wiener_filter(l, cl, cl_noise)
+        filtered_map = tools.convolve(sim_noise, l, wiener_filter, map_params) 
+        low_pass_filter = tool.low_pass_filter(l, 2000)
+        filtered_map = tools.convolve(filtered_map, l, low_pass_filter, map_params) 
         _, _, magnitude, angle = tools.gradient(filtered_cutout, dx)
         angle, magnitude_weight = np.median(angle), np.median(magnitude) 
         rotated_cutout = tools.rotate(cutout, angle)
-        rotated_cutout = rotated_cutout-np.mean(rotated_cutout)
+        rotated_cutout = rotated_cutout-np.median(rotated_cutout)
         cutouts.append(rotated_cutout)
         magnitude_weights.append(magnitude_weight)
     if use_magnitude_weights is False:
@@ -267,16 +275,18 @@ def fit_profiles2(nber_clus_fit, nber_rand_fit, mapparams, l, cl, mass_int, c, z
                 extragal_map = tools.make_gaussian_realization(mapparams, l, cl_noise)
                 sim_noise += extragal_map
             if bl is not None:
-                sim_lensed = tools.gaussian_filter(mapparams, sim_lensed, l, bl)
-                sim_noise = tools.gaussian_filter(mapparams, sim_noise, l, bl)
+                sim_lensed = tools.convolve(sim_lensed, l, np.sqrt(bl), map_params = map_params)
+                sim_noise = tools.convolve(sim_noise, l, np.sqrt(bl), map_params = map_params)
             cutout = tools.central_cutout(mapparams, sim_lensed, 10)
-            filtered_map = tools.wiener_filter(mapparams, sim_noise, l, cl, cl_noise) 
-            filtered_map = tools.low_pass_filter(mapparams, filtered_map, l, 2000)
+            wiener_filter = tools.wiener_filter(l, cl, cl_noise)
+            filtered_map = tools.convolve(sim_noise, l, wiener_filter, map_params) 
+            low_pass_filter = tool.low_pass_filter(l, 2000)
+            filtered_map = tools.convolve(filtered_map, l, low_pass_filter, map_params) 
             filtered_cutout = tools.central_cutout(mapparams, filtered_map, 6)
             _, _, magnitude, angle = tools.gradient(filtered_cutout, dx)
             angle, magnitude_weight = np.median(angle), np.median(magnitude) 
             rotated_cutout = tools.rotate(cutout, angle)
-            rotated_cutout = rotated_cutout-np.mean(rotated_cutout)
+            rotated_cutout = rotated_cutout-np.median(rotated_cutout)
             if use_magnitude_weights is False:
                 magnitude_weight = 1
             cutouts.append(rotated_cutout*magnitude_weight)

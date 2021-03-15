@@ -171,18 +171,18 @@ def hlc_map(map_dic, opbeam, mapparams, components = 'all', experiment = 'spt3g'
     bl_rebeam_arr = exp.rebeam(bl_dic)
 
     # computing 2D versions 
-    grid, _ = tools.make_grid(mapparams, Fourier = True)
+    grid, _ = tools.make_grid(mapparams, harmonic = True)
     weights_arr_2D = []
     for currW in weights_arr:
         l = np.arange(len(currW)) 
-        currW_2D = tools.interpolate_to_2d(grid, l, currW)
+        currW_2D = tools.convert_to_2d(grid, l, currW)
         weights_arr_2D.append(currW_2D)
     weights_arr_2D = np.asarray( weights_arr_2D )
     
     rebeam_arr_2D = []
     for currB in bl_rebeam_arr:
         l = np.arange(len(currB))
-        currB_2D = tools.interpolate_to_2d(grid, l, currB)
+        currB_2D = tools.convert_to_2d(grid, l, currB)
         rebeam_arr_2D.append(np.sqrt(currB_2D))
     rebeam_arr_2D = np.asarray( rebeam_arr_2D )
         

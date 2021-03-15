@@ -10,19 +10,19 @@ import experiments as exp
 import tools
 
 
-def cmb_mock_data(mapparams, l, cl, cluster = None, centroid_shift = None, nber_ch = 1, cluster_corr_cutouts_arr = None, cl_extragal_arr = None, bl_arr = None, nl_arr = None):
-    nx, dx, ny, dy = mapparams
+def cmb_mock_data(map_params, l, cl, cluster = None, centroid_shift = None, nber_ch = 1, cluster_corr_cutouts_arr = None, cl_extragal_arr = None, bl_arr = None, nl_arr = None):
+    nx, dx, ny, dy = map_params
     if cluster is not None:
         M, c, z = cluster
-        kappa = lensing.NFW(M, c, z, 1100).kappa_map(mapparams)
-        alpha_vec = lensing.alpha_from_kappa(mapparams, kappa)
+        kappa = lensing.NFW(M, c, z, 1100).kappa_map(map_params)
+        alpha_vec = lensing.alpha_from_kappa(map_params, kappa)
     if cluster_corr_cutouts_arr is not None:
         cluster_corr_cutout = cluster_corr_cutouts_arr[0][0]
         nx_cutout, ny_cutout = cluster_corr_cutout.shape[0], cluster_corr_cutout.shape[1]
         s, e = int((nx-nx_cutout)/2), int((ny+ny_cutout)/2)
-    sim = tools.make_gaussian_realization(mapparams, l, cl) 
+    sim = tools.make_gaussian_realization(map_params, l, cl) 
     if cluster is not None:
-        sim = lensing.lens_map(mapparams, sim, alpha_vec, centroid_shift = centroid_shift) 
+        sim = lensing.lens_map(map_params, sim, alpha_vec, centroid_shift = centroid_shift) 
     sims_ch_arr = [np.copy(sim) for k in range(nber_ch)]
     if cluster_corr_cutouts_arr is not None:
         rand_sel = random.randint(0, len(cluster_corr_cutouts_arr[0])-1)
@@ -31,15 +31,15 @@ def cmb_mock_data(mapparams, l, cl, cluster = None, centroid_shift = None, nber_
             cluster_corr_cutout = tools.rotate(cluster_corr_cutouts_arr[j][rand_sel], rand_ang)
             sims_ch_arr[j][s:e, s:e] = sims_ch_arr[j][s:e, s:e]+cluster_corr_cutout    
     if cl_extragal_arr is not None:
-        extragal_maps = tools.make_gaussian_realization(mapparams, l, cl_extragal_arr)
+        extragal_maps = tools.make_gaussian_realization(map_params, l, cl_extragal_arr)
         for j in range(nber_ch):
             sims_ch_arr[j] += extragal_maps[j]
     if bl_arr is not None:
         for j in range(nber_ch):    
-            sims_ch_arr[j] = tools.gaussian_filter(mapparams, sims_ch_arr[j], l, bl_arr[j])
+            sims_ch_arr[j] = tools.convolve(sims_ch_arr[j], l, np.sqrt(bl_arr[j]), map_params = map_params)
     if nl_arr is not None:
         for j in range(nber_ch):
-            noise_map = tools.make_gaussian_realization(mapparams, l, nl_arr[j])
+            noise_map = tools.make_gaussian_realization(map_params, l, nl_arr[j])
             sims_ch_arr[j] += noise_map
     if nber_ch == 1:
         sims_ch_arr = sims_ch_arr[0]
@@ -64,7 +64,7 @@ def cmb_mock_data_dict(freq_arr, mapparams, l, cl, cluster = None, centroid_shif
         nl_arr = [nl_dict[freq] for freq in sorted(nl_dict.keys() )]
     else:
         nl_arr = None
-    sims = cmb_mock_data2(mapparams, l, cl, cluster, centroid_shift, nber_ch, cluster_corr_cutouts_arr, cl_extragal_arr, bl_arr, nl_arr)
+    sims = cmb_mock_data(mapparams, l, cl, cluster, centroid_shift, nber_ch, cluster_corr_cutouts_arr, cl_extragal_arr, bl_arr, nl_arr)
     map_dic = {}
     for i, freq in enumerate(freq_arr):
         map_dic[freq] = sims[i]
@@ -112,9 +112,9 @@ def cmb_test_data(nber_maps, validation_analyis = False, clus_position_analysis 
             sim_2e14 = lensing.lens_map(map_params, sim, alpha_vec_2e14)
             sim_6e14 = lensing.lens_map(map_params, sim, alpha_vec_6e14)
             sim_10e14 = lensing.lens_map(map_params, sim, alpha_vec_10e14)
-            sim_2e14 = tools.gaussian_filter(map_params, sim_2e14, l, bl)
-            sim_6e14 = tools.gaussian_filter(map_params, sim_6e14, l, bl)
-            sim_10e14 = tools.gaussian_filter(map_params, sim_10e14, l, bl)
+            sim_2e14 = tools.convolve(sim_2e14, l, np.sqrt(bl), map_params = map_params)
+            sim_6e14 = tools.convolve(sim_6e14, l, np.sqrt(bl), map_params = map_params)
+            sim_10e14 = tools.convolve(sim_10e14, l, np.sqrt(bl), map_params = map_params)
             noise_map =  tools.make_gaussian_realization(map_params, l, nl)
             sim_2e14 += noise_map
             sim_6e14 += noise_map
@@ -128,8 +128,8 @@ def cmb_test_data(nber_maps, validation_analyis = False, clus_position_analysis 
             sim = tools.make_gaussian_realization(map_params, l, cl)
             sim_no_shift = lensing.lens_map(map_params, sim, alpha_vec_6e14)
             sim_clus_position_analysis = lensing.lens_map(map_params, sim, alpha_vec_6e14, centroid_shift = 0.5)
-            sim_no_shift = tools.gaussian_filter(map_params, sim_no_shift, l, bl)
-            sim_clus_position_analysis = tools.gaussian_filter(map_params, sim_clus_position_analysis, l, bl)
+            sim_no_shift = tools.convolve(sim_no_shift, l, np.sqrt(bl), map_params = map_params)
+            sim_clus_position_analysis = tools.convolve(sim_clus_position_analysis, l, np.sqrt(bl), map_params = map_params)
             noise_map =  tools.make_gaussian_realization(map_params, l, nl)
             sim_no_shift += noise_map
             sim_clus_position_analysis += noise_map
@@ -147,10 +147,10 @@ def cmb_test_data(nber_maps, validation_analyis = False, clus_position_analysis 
             sim_tsz[s:e, s:e] = sim_tsz[s:e, s:e] + tsz_cutout
             sim_ksz[s:e, s:e] = sim_ksz[s:e, s:e] + ksz_cutout
             sim_tsz_ksz[s:e, s:e] = sim_tsz_ksz[s:e, s:e] + tsz_ksz_cutout
-            sim_baseline = tools.gaussian_filter(map_params, sim_baseline, l, bl)
-            sim_tsz = tools.gaussian_filter(map_params, sim_tsz, l, bl)
-            sim_ksz = tools.gaussian_filter(map_params, sim_ksz, l, bl)
-            sim_tsz_ksz = tools.gaussian_filter(map_params, sim_tsz_ksz, l, bl)
+            sim_baseline = tools.convolve(sim_baseline, l, np.sqrt(bl), map_params = map_params)
+            sim_tsz = tools.convolve(sim_tsz, l, np.sqrt(bl), map_params = map_params)
+            sim_ksz = tools.convolve(sim_ksz, l, np.sqrt(bl), map_params = map_params)
+            sim_tsz_ksz = tools.convolve(sim_tsz_ksz, l, np.sqrt(bl), map_params = map_params)
             noise_map =  tools.make_gaussian_realization(map_params, l, nl)
             sim_baseline += noise_map
             sim_tsz += noise_map

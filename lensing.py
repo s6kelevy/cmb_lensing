@@ -22,7 +22,7 @@ def lensing_distances(zl, zs):
     Ds = CosmoCalc().angular_diameter_distance(0, zs)  
     Dls = CosmoCalc().angular_diameter_distance(zl, zs)
     
-    return Dl, Ds, Dls  # in Mp  
+    return Dl, Ds, Dls # in Mp  
       
     
 def critical_surface_mass_density(zl, zs):
@@ -30,13 +30,13 @@ def critical_surface_mass_density(zl, zs):
     Dl, Ds, Dls = lensing_distances(zl, zs)  
     sigma_c = (((c*1e-3)**2)/(4*np.pi*G))*((Ds)/(Dl*Dls))  
     
-    return sigma_c  # in M_sun/Mpc^2       
+    return sigma_c # in M_sun/Mpc^2       
   
     
-def alpha_from_kappa(mapparams, kappa_map):
+def deflection_from_convergence(mapparams, kappa_map):
     
     # defining underlying grid in harmonic space
-    grid, _ = tools.make_grid(mapparams, Fourier = True)
+    grid, _ = tools.make_grid(mapparams, harmonic = True)
     lX, lY = grid
     l2d = np.hypot(lX, lY)
     
@@ -53,38 +53,42 @@ def alpha_from_kappa(mapparams, kappa_map):
     return alpha_vec # in arcmin    
     
     
-def lens_map(map_params, unlensed_map, alpha_vec, centroid_shift = None):   
+def lens_map(map_params, unlensed_map, alpha_vec):   
     
-    # computing deflection field
+    # creating undeflected field
     grid, _ = tools.make_grid(map_params)  
     betaX, betaY = grid
+   
+    # cromputing deflected field    
     alphaX, alphaY = alpha_vec
     thetaX = betaX + alphaX
     thetaY = betaY + alphaY
     
-    # adding Gaussian positional uncertainties
-    if centroid_shift is not None:
-        thetaX += np.random.normal(loc=0.0, scale=centroid_shift)
-        thetaY += np.random.normal(loc=0.0, scale=centroid_shift)      
-        
     # computing lensed map through interpolation
     interpolate = sp.interpolate.RectBivariateSpline(betaY[:,0], betaX[0,:], unlensed_map, kx = 5, ky = 5)
     lensed_map  = interpolate.ev(thetaY.flatten(), thetaX.flatten()).reshape([len(betaY), len(betaX)]) 
+    plt.imshow(lensed_map-unlensed_map)
+    plt.colorbar()
+    plt.show()
+    plt.subplots()
     
     return lensed_map
 
 
 #################################################################################################################################    
 
-class NFW:
+class NFW:    
+    
     def __init__(self, M_200, c_200, z_l, z_s):
+        
         self.M_200 = M_200
         self.c_200 = c_200
         self.z_l = z_l
         self.z_s = z_s
-        
-        
+            
+            
     def kappa_profile(self, theta):
+        
         # computing cosmological parameters
         Dl, _, _ = lensing_distances(self.z_l, self.z_s)  
         rho_c = CosmoCalc().critical_density(self.z_l)    
@@ -118,19 +122,29 @@ class NFW:
        
         
         # computing kappa
-        kappa_profile = (2*kappa_s*(1-f)/(x**2-1))     
+        kappa_profile = (2*kappa_s*(1-f)/(x**2-1)) 
+        
         return kappa_profile
     
     
-    def kappa_map(self, map_params):
+    def convergence_map(self, map_params, centroid_shift = None):
         
         # getting kappa_profile
         nx, dx, _, _ = map_params
         theta = np.linspace(0, nx*dx/2, nx)
         kappa_profile = self.kappa_profile(theta)
         
-        # computing kappa map from kappa profile
-        grid, _ = tools.make_grid(map_params)
-        kappa_map = tools.interpolate_to_2d(grid, theta, kappa_profile)
+        # creating map grid 
+        grid, _ = tools.make_grid(map_params)      
+        
+        # adding Gaussian positional uncertainties
+        gridX, gridY = grid 
+        if centroid_shift is not None:
+            gridX += np.random.normal(loc=0.0, scale=centroid_shift)
+            gridY += np.random.normal(loc=0.0, scale=centroid_shift)  
+        grid = gridX, gridY
+        
+        # computing convergence map from convergence profile
+        kappa_map = tools.convert_to_2d(grid, theta, kappa_profile)
         
         return kappa_map
