@@ -88,6 +88,23 @@ def rebeam(bl_dic, threshold = 1000.):
     return np.asarray( rebeam_arr )
 
 
+
+def white_noise_power_spectrum(noiseval_white):
+    l = np.arange(10000)
+    delta_white_radians = np.radians(noiseval_white/60)
+    nl_white = np.tile(delta_white_radians**2, int(max(l)) + 1 )
+    nl_white = np.asarray( [nl_white[int(i)] for i in l] )
+    return l, nl_white
+
+    
+def red_noise_power_spectrum(noiseval_red, elknee, alphaknee):
+    l = np.arange(10000)
+    n_red = np.radians(noiseval_red/60)**2 
+    nl_red = n_red*(l/elknee)**alphaknee
+    return l, nl_red
+
+    
+
 def noise_power_spectrum(noiseval_white, noiseval_red = None, elknee = -1, alphaknee = 0, beam_fwhm = None, noiseval_red2 = None, elknee2 = -1, alphaknee2 = 0, rho = None):
     
     l = np.arange(10000)
@@ -154,7 +171,7 @@ def noise_power_spectra_dict(experiment, deconvolve = False, use_cross_noise = F
                 else:
                     l = np.arange(10000)
                     nl = np.zeros( len(l) )
-            #nl[l<=10] = 0.
+            nl[l<=10] = 0.
             nl_dic[(freq_arr[i], freq_arr[j])] = nl
     
     if use_cross_noise is False:

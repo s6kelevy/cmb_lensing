@@ -33,7 +33,7 @@ class CosmoCalc:
         omega_lambda = 1-self.omega_r-omega_m-self.omega_k
         H = H0 * np.sqrt(self.omega_r*(1+z)**4 + omega_m*(1+z)**3 + self.omega_k*(1+z)**2 + omega_lambda)
         
-        return H  # in km/s/Mpc 
+        return H # in km/s/Mpc 
     
 
     def hubble_distance(self, z):
@@ -41,7 +41,7 @@ class CosmoCalc:
         H = self.hubble_parameter(z)
         DH = (c*1e-3)/H
         
-        return DH  # in Mpc  
+        return DH # in Mpc  
    
     
     def comoving_distance(self, z1, z2):
@@ -51,7 +51,7 @@ class CosmoCalc:
             return 1/H
         chi, _ = (c*1e-3) * np.array(integrate.quad(inv_H, z1, z2)) 
         
-        return chi  # in Mpc 
+        return chi # in Mpc 
 
 
     def comoving_angular_diameter_distance(self, z1, z2): 
@@ -65,7 +65,7 @@ class CosmoCalc:
         else: 
             fk = DH/np.sqrt(abs(self.omega_k)) * np.sin(np.sqrt(abs(self.omega_k))*chi/DH) 
             
-        return fk  # in Mpc 
+        return fk # in Mpc 
     
          
     def angular_diameter_distance(self, z1, z2): 
@@ -73,7 +73,7 @@ class CosmoCalc:
         fk = self.comoving_angular_diameter_distance(z1, z2)  
         Dang = np.array(fk) / (1+z2)
         
-        return Dang  # in Mpc   
+        return Dang # in Mpc   
 
     
     def critical_density(self, z):
@@ -81,7 +81,7 @@ class CosmoCalc:
         H = self.hubble_parameter(z)  
         rho_c = (3*H**2)/(8*np.pi*G) 
         
-        return rho_c  # in M_sun/Mpc^3
+        return rho_c # in M_sun/Mpc^3
     
     
     def cmb_power_spectrum(self, tau = 0.054, TCMB = 2.72548, As = 2.10e-9, ns=0.965):

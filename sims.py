@@ -84,8 +84,8 @@ def cmb_test_data(nber_maps, validation_analyis = False, clus_position_analysis 
         alpha_vec_10e14 = lensing.alpha_from_kappa(map_params, kappa_map_10e14)
     if extragal_bias_analysis is True:  
         c500 = concentration.concentration(2e14,'500c', 0.7)
-        M200c, _, c200 = mass_defs.changeMassDefinition(2e14, c500, 0.7, '500c', '200c', profile='nfw')
-        kappa_map_M200c = lensing.NFW(M200c, c200, 0.7, 1100).kappa_map(map_params)
+        M200c, _, c200c = mass_defs.changeMassDefinition(2e14, c500, 0.7, '500c', '200c', profile='nfw')
+        kappa_map_M200c = lensing.NFW(M200c, c200c, 0.7, 1100).kappa_map(map_params)
         alpha_vec_M200c = lensing.alpha_from_kappa(map_params, kappa_map_M200c)
         fname = 'sim_data/mdpl2_cutouts_for_tszksz_clus_detection_M1.7e+14to2.3e+14_z0.6to0.8_15320haloes_boxsize20.0am.npz'
         cutouts_dic = np.load(fname, allow_pickle = 1, encoding= 'latin1')['arr_0'].item()

@@ -36,7 +36,7 @@ def fn_BnuT(freq, temp):
 
 def tsz_spec(freq):    
     x = (h * freq * 1e9) / (k_B * T_cmb)
-    g_nu = x * (np.exp(x/2) + np.exp(-x/2)) / (np.exp(x/2) - np.exp(-x/2)) - 4.
+    g_nu = x*(np.cosh(x/2)/np.sinh(x/2))-4
     return np.mean(g_nu) 
 
 

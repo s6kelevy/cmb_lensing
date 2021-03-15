@@ -49,29 +49,19 @@ def get_stack(cutouts, magnitude_weights = None, noise_weights = None):
 
 
 def get_dipole_profile(mapparams, maps_clus, maps_rand,  l, cl, cl_noise, use_magnitude_weights = True, noise_weights = None, correct_for_tsz = False):
+    
     stacks = []
     cutouts_aligned = []
-    magnitude_weights = []
+    magnitude_weights_clus = []
     for i in range(len(maps_clus)):
         cutout, weight = get_aligned_cutout(mapparams, maps_clus[i], l, cl, cl_noise)
         cutouts_aligned.append(cutout)
-        magnitude_weights.append(weight)
+        magnitude_weights_clus.append(weight)
     if use_magnitude_weights is False:
-        magnitude_weights = None
-    stack_clus = get_stack(cutouts_aligned, magnitude_weights, noise_weights) 
+        magnitude_weights_clus = None
+    stack_clus = get_stack(cutouts_aligned, magnitude_weights_clus, noise_weights) 
     stacks.append(stack_clus)
     
-    
-    if correct_for_tsz is True:
-        stacks = []
-        cutouts_rand = []
-        for i in range(len(maps_clus)):
-            cutout = get_random_cutout(mapparams, maps_clus[i])
-            cutouts_rand.append(cutout)
-        stack_rand = get_stack(cutouts_rand, magnitude_weights, noise_weights) 
-        stack_clus = stack_clus - stack_rand
-        stacks.append(stack_clus)
-        stacks.append(stack_rand)
         
     
     cutouts_aligned = []
@@ -83,11 +73,22 @@ def get_dipole_profile(mapparams, maps_clus, maps_rand,  l, cl, cl_noise, use_ma
     if use_magnitude_weights is False:
         magnitude_weights = None
     stack_bg = get_stack(cutouts_aligned, magnitude_weights, noise_weights)
-    
+    stacks.append(stack_bg)
     
     stack_dipole = stack_clus-stack_bg
-    stacks.append(stack_bg)
     stacks.append(stack_dipole)
+    
+    
+    if correct_for_tsz is True:
+        cutouts_rand = []
+        for i in range(len(maps_clus)):
+            cutout = get_random_cutout(mapparams, maps_clus[i])
+            cutouts_rand.append(cutout)
+        stack_tsz = get_stack(cutouts_rand, magnitude_weights_clus, noise_weights) 
+        stack_dipole_corrected = stack_dipole - stack_tsz
+        stacks.append(stack_tsz)
+        stacks.append(stack_dipole_corrected)
+        stack_dipole = stack_dipole_corrected
     
     
     _, dx, _, _ = mapparams

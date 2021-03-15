@@ -17,24 +17,30 @@ G = 4.3*10**(-9)  # gravitational constant in Mpc*M_sun^-1*(km/s)^2
 
 
 def lensing_distances(zl, zs):
+    
     Dl = CosmoCalc().angular_diameter_distance(0, zl)  
     Ds = CosmoCalc().angular_diameter_distance(0, zs)  
-    Dls = CosmoCalc().angular_diameter_distance(zl, zs)  
+    Dls = CosmoCalc().angular_diameter_distance(zl, zs)
+    
     return Dl, Ds, Dls  # in Mp  
       
     
 def critical_surface_mass_density(zl, zs):
+    
     Dl, Ds, Dls = lensing_distances(zl, zs)  
     sigma_c = (((c*1e-3)**2)/(4*np.pi*G))*((Ds)/(Dl*Dls))  
+    
     return sigma_c  # in M_sun/Mpc^2       
   
     
 def alpha_from_kappa(mapparams, kappa_map):
+    
+    # defining underlying grid in harmonic space
     grid, _ = tools.make_grid(mapparams, Fourier = True)
     lX, lY = grid
     l2d = np.hypot(lX, lY)
     
-    #get deflection angle from kappa
+    # computing deflection angle from convergence map
     kappa_map_fft = np.fft.fft2(kappa_map)
     alphaX_fft =  1j * lX * 2. *  kappa_map_fft / l2d**2
     alphaY_fft =  1j * lY * 2. *  kappa_map_fft / l2d**2
@@ -43,24 +49,28 @@ def alpha_from_kappa(mapparams, kappa_map):
     alphaX = np.degrees(np.fft.ifft2(alphaX_fft).real)*60
     alphaY = np.degrees(np.fft.ifft2(alphaY_fft).real)*60
     alpha_vec = [alphaX, alphaY]
-    return alpha_vec  # in arcmin    
+    
+    return alpha_vec # in arcmin    
     
     
 def lens_map(map_params, unlensed_map, alpha_vec, centroid_shift = None):   
-    # compute deflection field
+    
+    # computing deflection field
     grid, _ = tools.make_grid(map_params)  
     betaX, betaY = grid
     alphaX, alphaY = alpha_vec
     thetaX = betaX + alphaX
     thetaY = betaY + alphaY
     
+    # adding Gaussian positional uncertainties
     if centroid_shift is not None:
         thetaX += np.random.normal(loc=0.0, scale=centroid_shift)
         thetaY += np.random.normal(loc=0.0, scale=centroid_shift)      
         
-    # interpolate
+    # computing lensed map through interpolation
     interpolate = sp.interpolate.RectBivariateSpline(betaY[:,0], betaX[0,:], unlensed_map, kx = 5, ky = 5)
     lensed_map  = interpolate.ev(thetaY.flatten(), thetaX.flatten()).reshape([len(betaY), len(betaX)]) 
+    
     return lensed_map
 
 
