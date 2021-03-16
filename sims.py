@@ -12,19 +12,17 @@ import tools
 
 def cmb_mock_data(map_params, l, cl, cluster = None, centroid_shift = None, nber_ch = 1, cluster_corr_cutouts_arr = None, cl_extragal_arr = None, bl_arr = None, nl_arr = None):
     nx, dx, ny, dy = map_params
+    sim = tools.make_gaussian_realization(map_params, l, cl) 
     if cluster is not None:
         M, c, z = cluster
-        kappa = lensing.NFW(M, c, z, 1100).kappa_map(map_params)
-        alpha_vec = lensing.alpha_from_kappa(map_params, kappa)
+        kappa = lensing.NFW(M, c, z, 1100).convergence_map(map_params, centroid_shift = centroid_shift)
+        alpha_vec = lensing.deflection_from_convergence(map_params, kappa)
+        sim = lensing.lens_map(map_params, sim, alpha_vec) 
+    sims_ch_arr = [np.copy(sim) for k in range(nber_ch)]
     if cluster_corr_cutouts_arr is not None:
         cluster_corr_cutout = cluster_corr_cutouts_arr[0][0]
         nx_cutout, ny_cutout = cluster_corr_cutout.shape[0], cluster_corr_cutout.shape[1]
         s, e = int((nx-nx_cutout)/2), int((ny+ny_cutout)/2)
-    sim = tools.make_gaussian_realization(map_params, l, cl) 
-    if cluster is not None:
-        sim = lensing.lens_map(map_params, sim, alpha_vec, centroid_shift = centroid_shift) 
-    sims_ch_arr = [np.copy(sim) for k in range(nber_ch)]
-    if cluster_corr_cutouts_arr is not None:
         rand_sel = random.randint(0, len(cluster_corr_cutouts_arr[0])-1)
         rand_ang = random.randint(-180,180)
         for j in range(nber_ch):
@@ -46,22 +44,22 @@ def cmb_mock_data(map_params, l, cl, cluster = None, centroid_shift = None, nber
     return sims_ch_arr 
 
 
-def cmb_mock_data_dict(freq_arr, mapparams, l, cl, cluster = None, centroid_shift = None, cluster_corr_cutouts_dict = None, cl_extragal_dict = None, bl_dict = None, nl_dict = None):
+def cmb_mock_data_dic(freq_arr, mapparams, l, cl, cluster = None, centroid_shift = None, cluster_corr_cutouts_dic = None, cl_extragal_dic = None, bl_dic = None, nl_dic = None):
     nber_ch = len(freq_arr)
-    if cluster_corr_cutouts_dict is not None:
-        cluster_corr_cutouts_arr = [cluster_corr_cutouts_dict[freq] for freq in sorted(cluster_corr_cutouts_dict.keys() )] 
+    if cluster_corr_cutouts_dic is not None:
+        cluster_corr_cutouts_arr = [cluster_corr_cutouts_dic[freq] for freq in sorted(cluster_corr_cutouts_dic.keys() )]  
     else:
         cluster_corr_cutouts_arr = None
-    if cl_extragal_dict is not None:
-        cl_extragal_arr = [cl_extragal_dict[freq] for freq in sorted(cl_extragal_dict.keys() )]
+    if cl_extragal_dic is not None:
+        cl_extragal_arr = [cl_extragal_dic[freq] for freq in sorted(cl_extragal_dic.keys() )]
     else:
         cl_extragal_arr = None
-    if bl_dict is not None:
-        bl_arr = [bl_dict[freq] for freq in sorted(bl_dict.keys() )]
+    if bl_dic is not None:
+        bl_arr = [bl_dic[freq] for freq in sorted(bl_dic.keys() )]
     else:
         bl_arr = None
-    if nl_dict is not None:
-        nl_arr = [nl_dict[freq] for freq in sorted(nl_dict.keys() )]
+    if nl_dic is not None:
+        nl_arr = [nl_dic[freq] for freq in sorted(nl_dic.keys() )]
     else:
         nl_arr = None
     sims = cmb_mock_data(mapparams, l, cl, cluster, centroid_shift, nber_ch, cluster_corr_cutouts_arr, cl_extragal_arr, bl_arr, nl_arr)

@@ -2,13 +2,14 @@
 import numpy as np
 from scipy import signal
 import random
+from tqdm import tqdm
 import tools
 from tqdm import tqdm
 import lensing
 import cosmo
 import stats
 import sims
-import hlc
+
 
 
 
@@ -56,7 +57,7 @@ def get_dipole_profile(mapparams, maps_clus, maps_rand,  l, cl, cl_noise, use_ma
     stacks = []
     cutouts_aligned = []
     magnitude_weights_clus = []
-    for i in range(len(maps_clus)):
+    for i in tqdm(range(len(maps_clus))):
         cutout, weight = get_aligned_cutout(mapparams, maps_clus[i], l, cl, cl_noise)
         cutouts_aligned.append(cutout)
         magnitude_weights_clus.append(weight)
@@ -69,7 +70,7 @@ def get_dipole_profile(mapparams, maps_clus, maps_rand,  l, cl, cl_noise, use_ma
     
     cutouts_aligned = []
     magnitude_weights = []
-    for i in range(len(maps_rand)):
+    for i in tqdm(range(len(maps_rand))):
         cutout, weight = get_aligned_cutout(mapparams, maps_rand[i], l, cl, cl_noise)
         cutouts_aligned.append(cutout)
         magnitude_weights.append(weight)
@@ -84,7 +85,7 @@ def get_dipole_profile(mapparams, maps_clus, maps_rand,  l, cl, cl_noise, use_ma
     
     if correct_for_tsz is True:
         cutouts_rand = []
-        for i in range(len(maps_clus)):
+        for i in tqdm(range(len(maps_clus))):
             cutout = get_random_cutout(mapparams, maps_clus[i])
             cutouts_rand.append(cutout)
         stack_tsz = get_stack(cutouts_rand, magnitude_weights_clus, noise_weights) 

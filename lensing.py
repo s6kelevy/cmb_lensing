@@ -67,10 +67,6 @@ def lens_map(map_params, unlensed_map, alpha_vec):
     # computing lensed map through interpolation
     interpolate = sp.interpolate.RectBivariateSpline(betaY[:,0], betaX[0,:], unlensed_map, kx = 5, ky = 5)
     lensed_map  = interpolate.ev(thetaY.flatten(), thetaX.flatten()).reshape([len(betaY), len(betaX)]) 
-    plt.imshow(lensed_map-unlensed_map)
-    plt.colorbar()
-    plt.show()
-    plt.subplots()
     
     return lensed_map
 

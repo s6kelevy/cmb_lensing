@@ -117,6 +117,7 @@ def get_cl_cib(freq1, freq2 = None):
 
 
 def get_cl_tsz(freq1, freq2 = None):
+    
     l, dl_tsz_freq0 = get_foreground_power_spt('tSZ')
 
     tsz_fac_freq0 = tsz_spec(freq0)
@@ -189,13 +190,30 @@ def extragalactic_power_spectrum(freq, freq2 = None, components = 'all'):
     return l, cl_extragal
 
 
-def extragalactic_power_spectrum_dict(freq_arr, components = 'all'):
+#def extragalactic_power_spectrum_dict(freq_arr, components = 'all'):
+#    cl_extragal_dic = {}
+#    for freq in freq_arr:
+#        l, cl_extragal = extragalactic_power_spectrum(freq, components = components)
+ #       cl_extragal_dic[freq] = cl_extragal
+#    return l, cl_extragal_dic
+
+
+def extragalactic_power_spectrum_dic(freq_arr, components = 'all', use_cross_power = False):
+   
+    # creating noise power spectra dictionary
     cl_extragal_dic = {}
-    for freq in freq_arr:
-        l, cl_extragal = extragalactic_power_spectrum(freq, components = components)
-        cl_extragal_dic[freq] = cl_extragal
-    return l, cl_extragal_dic
-
-
-
+    for freq1 in freq_arr:
+        for freq2 in freq_arr:        
+            if freq1 == freq2: 
+                l, cl_extragal = extragalactic_power_spectrum(freq1, components = components)
+            else:
+                l, cl_extragal = extragalactic_power_spectrum(freq1, freq2 = freq2, components = components)
+            cl_extragal_dic[(freq1, freq2)] = cl_extragal
+   
+    if use_cross_power is False:
+        cl_extragal_arr = [cl_extragal_dic[freq, freq]  for freq in freq_arr]  
+        cl_extragal_dic = {}
+        for i, freq in enumerate(freq_arr):
+            cl_extragal_dic[freq] = cl_extragal_arr[i]
   
+    return l, cl_extragal_dic
