@@ -127,6 +127,31 @@ def make_gaussian_realization(map_params, l, psd):
     nx, dx, ny, dy = map_params
     dx_rad, dy_rad = np.radians(dx/60), np.radians(dy/60)
     gauss_map = np.random.randn(nx, ny)/np.sqrt(dx_rad * dy_rad)
+    
+    # convoling Gaussian realization with given power spectra
+    if isinstance(psd, list) is False:
+        is_list = False
+        psd = [psd]
+    else:
+        is_list = True
+    gauss_realization_arr = []
+    for power_spectrum in psd:
+        gauss_realization = convolve(gauss_map, l, np.sqrt(power_spectrum), map_params = map_params)
+        gauss_realization -= np.mean(gauss_realization)
+        gauss_realization_arr.append(gauss_realization)
+    
+    if is_list is False:
+        return gauss_realization_arr[0]
+     
+    return gauss_realization_arr
+
+    
+def make_gaussian_realization2(map_params, l, psd):  
+   
+    # creating a random Gaussian realization and its Fourier transform
+    nx, dx, ny, dy = map_params
+    dx_rad, dy_rad = np.radians(dx/60), np.radians(dy/60)
+    gauss_map = np.random.randn(nx, ny)/np.sqrt(dx_rad * dy_rad)
    
     
     # convoling Gaussian realization with given power spectrum
