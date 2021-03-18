@@ -37,12 +37,18 @@ def specs(experiment):
     if experiment == 'ccatp':
         specs_dic = {
             #freq: [beam_arcmins, white_noise, red_noise, elknee, alphaknee] 
+            27:  [7.4, 52.1, 6.1,  1000, -3.5],
+            39:  [5.1, 27.1, 3.8,  1000, -3.5], 
+            93:  [2.2, 5.8,  9.3,  1000, -3.5],
+            145: [1.4, 6.5,  23.8, 1000, -3.5],
             220: [0.95, 14.6, 0.07, 1000, -3.5],
+            225: [1.0, 15.0, 80.0, 1000, -3.5],
+            279.999999: [0.9, 37.0, 108.0, 1000, -3.5],
             280: [0.75, 27.5, 0.19, 1000, -3.5], 
             350: [0.58, 104.8, 0.94, 1000, -3.5],
             410: [0.50, 376.6, 2.4, 1000, -3.5],
             }
-        corr_noise_bands = {220: [220], 280:[280], 350:[350], 410:[410]}   
+        corr_noise_bands = {27:[39], 39:[27], 93:[145], 145:[93], 220: [220], 225: [279.999999], 279.999999: [225], 280:[280], 350:[350], 410:[410]}   
         rho = 0.9
     return specs_dic, corr_noise_bands, rho
 
@@ -86,14 +92,13 @@ def rebeam(bl_dic, threshold = 1000):
     
     freq_arr = []
     for nu in list(bl_dic.keys()): 
-        if isinstance(nu, int):
+        if isinstance(nu, int) or isinstance(nu, float):
             freq_arr.append(nu)
     freq_arr = sorted(freq_arr)
 
     bl_eff = bl_dic['effective']
     rebeam_arr = []
     for freq in freq_arr:
-        if freq == 'effective': continue
         bad_inds = np.where(bl_dic[freq]<0)
         bl_dic[freq][bad_inds] = 0.
         currinvbeamval = 1/bl_dic[freq]
@@ -126,12 +131,14 @@ def red_noise_power_spectrum(noiseval_red, elknee, alphaknee, beam_fwhm = None, 
     l = np.arange(10000)
     n_red = np.radians(noiseval_red/60)**2 
     nl_red = n_red*(l/elknee)**alphaknee
+    nl_red[np.isnan(nl_red)] = 0
     nl_red[np.isinf(nl_red)] = 0
     
     # computing cross band noise power spectrum
     if noiseval_red2 is not None:
         n_red2 =  np.radians(noiseval_red2/60)**2
         nl_red2= n_red2*(l/elknee2)**alphaknee2
+        nl_red2[np.isnan(nl_red2)] = 0
         nl_red2[np.isinf(nl_red2)] = 0
         nl_red = rho * (nl_red * nl_red2)**(0.5)
    
@@ -146,10 +153,10 @@ def red_noise_power_spectrum(noiseval_red, elknee, alphaknee, beam_fwhm = None, 
 def noise_power_spectrum(noiseval_white, noiseval_red, elknee, alphaknee, beam_fwhm = None):
     
     # computing white noise power spectrum
-    l, nl_white = white_noise_power_spectrum(noiseval_white, beam_fwhm = beam_fwhm)
+    l, nl_white = white_noise_power_spectrum(noiseval_white)
        
     # adding atmospheric noise power spectrum
-    l, nl_red = red_noise_power_spectrum(noiseval_red, elknee, alphaknee, beam_fwhm = beam_fwhm)
+    l, nl_red = red_noise_power_spectrum(noiseval_red, elknee, alphaknee)
     nl = nl_white + nl_red
     
     # deconvolving noise power spectrum
@@ -158,6 +165,46 @@ def noise_power_spectrum(noiseval_white, noiseval_red, elknee, alphaknee, beam_f
         nl *= bl**(-1)
         
     return l, nl
+
+def noise_power_spectrum2(noiseval_white, noiseval_red, elknee = -1, alphaknee = 0, beam_fwhm = None, noiseval_white2 = None, noiseval_red2 = None, elknee2 = -1, alphaknee2 = 0, beam_fwhm2 = None, rho = None):
+    l = np.arange(10000)
+    cross_band_noise = 0
+    if noiseval_white2 is not None and beam_fwhm2 is not None:
+        assert rho is not None
+        cross_band_noise = 1
+
+    if beam_fwhm is not None:
+        l, bl = beam_power_spectrum(beam_fwhm)
+        if cross_band_noise: l, bl2 = beam_power_spectrum(beam_fwhm2)
+
+    delta_T_radians = noiseval_white * np.radians(1./60.)
+    nl = np.tile(delta_T_radians**2., int(max(l)) + 1 )
+    nl = np.asarray( [nl[int(j)] for j in l] )
+    nl_white = np.copy(nl)
+
+    if cross_band_noise:
+        delta_T2_radians = noiseval_white2 * np.radians(1./60.)
+        nl2 = np.tile(delta_T2_radians**2., int(max(l)) + 1 )
+        nl2 = np.asarray( [nl2[int(j)] for j in l] )
+        nl2_white = np.copy(nl2)
+
+    if beam_fwhm is not None: 
+        nl *=  bl**(-1)
+        if cross_band_noise: nl2 *= bl2**(-1)
+
+    if elknee != -1.:
+        nl = np.copy(nl) * (1. + (l/elknee)**alphaknee )
+        if cross_band_noise and elknee2 != -1.:
+            nl2 = np.copy(nl2) * (1. + (l/elknee2)**alphaknee2 )
+
+    if cross_band_noise:
+        ###final_nl = rho * nl**0.5 * nl2**0.5
+        final_nl = rho * delta_T_radians * (l/elknee)**(alphaknee/2.) * delta_T2_radians * (l/elknee2)**(alphaknee2/2.)
+        #N[i,j,:] = rho * (w1*np.pi/180./60. * (ell/knee1)**(gamma1/2)) * (w2*np.pi/180./60. * (ell/knee2)**(gamma2/2))
+    else:
+        final_nl = np.copy(nl)
+
+    return l,final_nl
 
 
 def noise_power_spectra_dic(experiment, deconvolve = False, use_cross_power = False):
@@ -190,7 +237,8 @@ def noise_power_spectra_dic(experiment, deconvolve = False, use_cross_power = Fa
                     l, nl = red_noise_power_spectrum(noiseval_red1, elknee1, alphaknee1, noiseval_red2 = noiseval_red2, elknee2 = elknee2, alphaknee2 = alphaknee2, rho = rho)
                 else:
                     l = np.arange(10000)
-                    nl = np.zeros( len(l) )
+                    nl = np.zeros(len(l))
+            nl[l<=10] = 0.
             nl_dic[(freq_arr[i], freq_arr[j])] = nl
     
     if use_cross_power is False:

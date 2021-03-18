@@ -1,7 +1,11 @@
+# importing relevant modules
 import numpy as np
 import foregrounds as fg
 import experiments as exp
 import tools
+
+
+#################################################################################################################################
 
 
 def power_spectra_dic(map_dic = None, map_params = None, components = 'all', experiment = None):
@@ -22,9 +26,8 @@ def power_spectra_dic(map_dic = None, map_params = None, components = 'all', exp
                 if end_nl>ini_nl:             
                         badinds = np.where(nl>=5000)[0]
                         nl[badinds] = 5000
-                # computing total power spectra 
+                # computing total power spectra   
                 cl_noise = cl_extragal + nl  
-                cl_noise[np.isinf(cl_noise)] = 0.
                 cl_dic[(freq1, freq2)] = cl_noise       
     else:
         freqarr = sorted(map_dic.keys())
@@ -39,10 +42,8 @@ def power_spectra_dic(map_dic = None, map_params = None, components = 'all', exp
                 cl_dic[(freq1, freq2)] = cl       
     
     return l, cl_dic
-
-
-
 '''
+
 def power_spectra_dic(map_dic = None, mapparams = None, components = 'all', experiment = None):
     if map_dic is None:
         # creating total power spectra dictionary
@@ -89,18 +90,19 @@ def power_spectra_dic(map_dic = None, mapparams = None, components = 'all', expe
 
 '''
 
+
+
 def create_clmat(freqarr, elcnt, cl_dic):
     
     nc = len(freqarr)
-    teb_len, pspec_arr = 1, ['TT']
+    teb_len = 1
     clmat = np.zeros( (teb_len * nc, teb_len * nc) )
 
-    for pspecind, pspec in enumerate( pspec_arr ):
-        curr_cl_dic = cl_dic
-        for ncnt1, freq1 in enumerate(freqarr):
-            for ncnt2, freq2 in enumerate(freqarr):
-                j, i = ncnt2, ncnt1
-                clmat[j, i] = curr_cl_dic[(freq1, freq2)][elcnt]
+    curr_cl_dic = cl_dic
+    for ncnt1, freq1 in enumerate(freqarr):
+        for ncnt2, freq2 in enumerate(freqarr):
+            j, i = ncnt2, ncnt1
+            clmat[j, i] = curr_cl_dic[(freq1, freq2)][elcnt]
     clmat = np.mat(clmat)
    
     return clmat 
@@ -164,8 +166,8 @@ def residuals_and_weights(map_dic = None, mapparams = None, components = 'all', 
                 l, cl_tsz_cib = fg.extragalactic_power_spectrum(freq1, freq2, components = ['tsz_cib'])
                 cl_tsz_cib_dic[(freq1, freq2)] = cl_tsz_cib_dic[(freq2, freq1)] = cl_tsz_cib 
     
-    l, nl_dic = exp.noise_power_spectra_dic(experiment, deconvolve = True, use_cross_power = True)   
-    signal_arr = components + ['noise']    
+    l, nl_dic = exp.noise_power_spectra_dic(experiment, deconvolve = True, use_cross_power = True)  
+    signal_arr = components + ['noise']  
     res_ilc_dic = {}
     for i in range(len(l)):
         for s in signal_arr:
@@ -245,4 +247,3 @@ def ilc_map(map_dic, opbeam, mapparams, experiment, components = 'all', cov_from
     ilc_map = np.fft.ifft2(ilc_map_fft).real
 
     return ilc_map, res_weights
-
