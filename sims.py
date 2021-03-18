@@ -14,13 +14,15 @@ import tools
 #################################################################################################################################
 
 
-def cmb_mock_data(map_params, l, cl, cluster = None, centroid_shift = None, nber_ch = 1, cluster_corr_cutouts = None, cl_extragal = None, bl = None, nl = None):
+def cmb_mock_data(map_params, l, cl, cluster = None, centroid_shift_value = None, nber_ch = 1, cluster_corr_cutouts = None, cl_extragal = None, bl = None, nl = None):
     
     nx, dx, ny, dy = map_params
     sim = tools.make_gaussian_realization(map_params, l, cl) 
    
     if cluster is not None:
         M, c, z = cluster
+        x_shift, y_shift = np.random.normal(loc=0.0, scale = centroid_shift_value), np.random.normal(loc=0.0, scale = centroid_shift_value) 
+        centroid_shift = [x_shift, y_shift]
         kappa = lensing.NFW(M, c, z, 1100).convergence_map(map_params, centroid_shift = centroid_shift)
         alpha_vec = lensing.deflection_from_convergence(map_params, kappa)
         sim = lensing.lens_map(map_params, sim, alpha_vec) 
@@ -62,40 +64,6 @@ def cmb_mock_data(map_params, l, cl, cluster = None, centroid_shift = None, nber
     if nber_ch == 1:
          return sims_ch_arr[0]
         
-    return sims_ch_arr 
-
-
-def cmb_mock_data1(map_params, l, cl, cluster = None, centroid_shift = None, nber_ch = 1, cluster_corr_cutouts_arr = None, cl_extragal_arr = None, bl_arr = None, nl_arr = None):
-    nx, dx, ny, dy = map_params
-    sim = tools.make_gaussian_realization(map_params, l, cl) 
-    if cluster is not None:
-        M, c, z = cluster
-        kappa = lensing.NFW(M, c, z, 1100).convergence_map(map_params, centroid_shift = centroid_shift)
-        alpha_vec = lensing.deflection_from_convergence(map_params, kappa)
-        sim = lensing.lens_map(map_params, sim, alpha_vec) 
-    sims_ch_arr = [np.copy(sim) for k in range(nber_ch)]
-    if cluster_corr_cutouts_arr is not None:
-        cluster_corr_cutout = cluster_corr_cutouts_arr[0][0]
-        nx_cutout, ny_cutout = cluster_corr_cutout.shape[0], cluster_corr_cutout.shape[1]
-        s, e = int((nx-nx_cutout)/2), int((ny+ny_cutout)/2)
-        rand_sel = random.randint(0, len(cluster_corr_cutouts_arr[0])-1)
-        rand_ang = random.randint(-180,180)
-        for j in range(nber_ch):
-            cluster_corr_cutout = tools.rotate(cluster_corr_cutouts_arr[j][rand_sel], rand_ang)
-            sims_ch_arr[j][s:e, s:e] = sims_ch_arr[j][s:e, s:e]+cluster_corr_cutout    
-    if cl_extragal_arr is not None:
-        extragal_maps = tools.make_gaussian_realization(map_params, l, cl_extragal_arr)
-        for j in range(nber_ch):
-            sims_ch_arr[j] += extragal_maps[j]
-    if bl_arr is not None:
-        for j in range(nber_ch):    
-            sims_ch_arr[j] = tools.convolve(sims_ch_arr[j], l, np.sqrt(bl_arr[j]), map_params = map_params)
-    if nl_arr is not None:
-        for j in range(nber_ch):
-            noise_map = tools.make_gaussian_realization(map_params, l, nl_arr[j])
-            sims_ch_arr[j] += noise_map
-    if nber_ch == 1:
-        sims_ch_arr = sims_ch_arr[0]
     return sims_ch_arr 
 
 
@@ -167,8 +135,10 @@ def cmb_test_data(nber_maps, validation_analyis = False, clus_position_analysis 
         sims_baseline, sims_centorid_shift = [], []
         kappa_map_6e14_baseline = lensing.NFW(2e14, 3, 1, 1100).convergence_map(map_params)
         alpha_vec_6e14_baseline = lensing.deflection_from_convergence(map_params, kappa_map_6e14_baseline)
-        for i in range(nber_maps):           
-            kappa_map_6e14_centroid_shift = lensing.NFW(6e14, 3, 1, 1100).convergence_map(map_params, centroid_shift = 0.5)       
+        for i in range(nber_maps):    
+            x_shift, y_shift = np.random.normal(loc=0.0, scale = 0.5), np.random.normal(loc=0.0, scale = 0.5) 
+            centroid_shift = [x_shift, y_shift]
+            kappa_map_6e14_centroid_shift = lensing.NFW(6e14, 3, 1, 1100).convergence_map(map_params, centroid_shift)       
             alpha_vec_6e14_centroid_shift = lensing.deflection_from_convergence(map_params, kappa_map_6e14_centroid_shift)
             sim = tools.make_gaussian_realization(map_params, l, cl)
             sim_baseline = lensing.lens_map(map_params, sim, alpha_vec_6e14_baseline)
@@ -188,7 +158,7 @@ def cmb_test_data(nber_maps, validation_analyis = False, clus_position_analysis 
         M200c, _, c200c = mass_defs.changeMassDefinition(2e14, c500, 0.7, '500c', '200c', profile='nfw')
         kappa_map_M200c = lensing.NFW(M200c, c200c, 0.7, 1100).convergence_map(map_params)
         alpha_vec_M200c = lensing.deflection_from_convergence(map_params, kappa_map_M200c)
-        fname = '/Volumes/Extreme_SSD/codes/master_thesis/code/sim_data/mdpl2_cutouts_for_tszksz_clus_detection_M1.7e+14to2.3e+14_z0.6to0.8_15320haloes_boxsize20.0am.npz'
+        fname = '/Volumes/Extreme_SSD/codes/master_thesis/code/data/mdpl2_cutouts_for_tszksz_clus_detection_M1.7e+14to2.3e+14_z0.6to0.8_15320haloes_boxsize20.0am.npz'
         cutouts_dic = np.load(fname, allow_pickle = 1, encoding= 'latin1')['arr_0'].item()
         mass_z_key = list(cutouts_dic.keys())[0]
         cutouts = cutouts_dic[mass_z_key]

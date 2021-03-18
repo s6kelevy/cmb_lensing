@@ -17,6 +17,7 @@ G = 4.3*10**(-9)  # gravitational constant in Mpc*M_sun^-1*(km/s)^2
 
 
 class CosmoCalc:
+    
     def __init__(self, h = 0.674, omega_r = 0, ombh2=0.0224, omch2=0.120, omega_k = 0):
         
         self.h = h

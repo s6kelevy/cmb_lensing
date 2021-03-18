@@ -10,14 +10,14 @@ import emcee
 #################################################################################################################################
 
 
-def covariance_and_correlation_matrix(maps):
+def covariance_and_correlation_matrix(sample):
     
-    matrix = np.concatenate(maps)
-    if maps_for_covariance[0].ndim == 1:
-        nber_data_points = maps[0].shape[0]
+    matrix = np.concatenate(sample)
+    if sample[0].ndim == 1:
+        nber_data_points = sample[0].shape[0]
     else:
-        nber_data_points = maps[0].shape[0]*maps[0].shape[1]
-    matrix = matrix.flatten().reshape(len(maps), nber_data_points)
+        nber_data_points = sample[0].shape[0]*sample[0].shape[1]
+    matrix = matrix.flatten().reshape(len(sample), nber_data_points)
     covariance_matrix = np.cov(matrix, rowvar=False) 
     correlation_matrix = np.corrcoef(matrix, rowvar=False)
     

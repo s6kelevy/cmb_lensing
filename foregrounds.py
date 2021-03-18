@@ -52,7 +52,7 @@ def compton_y_to_delta_Tcmb(freq, uK = False):
 
 def get_foreground_power_spt(component):
     components = ['tSZ', 'DG-Cl','DG-Po','RG', 'kSZ']
-    filename = 'sim_data/george_plot_bestfit_line.sav'
+    filename = '/Volumes/Extreme_SSD/codes/master_thesis/code/data/george_plot_bestfit_line.sav'
     data = readsav(filename)
     freqs = np.asarray([(95, 95), (95, 150), (95, 220), (150, 150), (150, 220), (220, 220)])
     dl_all = data['ml_dls'][(freqs[:, 0] == 150) & (freqs[:, 1] == freq0)][0]
@@ -188,14 +188,6 @@ def extragalactic_power_spectrum(freq, freq2 = None, components = 'all'):
         cl_extragal += cl_tsz_cib
     
     return l, cl_extragal
-
-
-#def extragalactic_power_spectrum_dict(freq_arr, components = 'all'):
-#    cl_extragal_dic = {}
-#    for freq in freq_arr:
-#        l, cl_extragal = extragalactic_power_spectrum(freq, components = components)
- #       cl_extragal_dic[freq] = cl_extragal
-#    return l, cl_extragal_dic
 
 
 def extragalactic_power_spectrum_dic(freq_arr, components = 'all', use_cross_power = False):

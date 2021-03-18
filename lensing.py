@@ -83,7 +83,7 @@ class NFW:
         self.z_s = z_s
             
             
-    def kappa_profile(self, theta):
+    def convergence_profile(self, theta):
         
         # computing cosmological parameters
         Dl, _, _ = lensing_distances(self.z_l, self.z_s)  
@@ -128,7 +128,7 @@ class NFW:
         # getting kappa_profile
         nx, dx, _, _ = map_params
         theta = np.linspace(0, nx*dx/2, nx)
-        kappa_profile = self.kappa_profile(theta)
+        kappa_profile = self.convergence_profile(theta)
         
         # creating map grid 
         grid, _ = tools.make_grid(map_params)      
@@ -136,8 +136,9 @@ class NFW:
         # adding Gaussian positional uncertainties
         gridX, gridY = grid 
         if centroid_shift is not None:
-            gridX += np.random.normal(loc=0.0, scale=centroid_shift)
-            gridY += np.random.normal(loc=0.0, scale=centroid_shift)  
+            x_shift, y_shift = centroid_shift
+            gridX += x_shift
+            gridY += y_shift 
         grid = gridX, gridY
         
         # computing convergence map from convergence profile

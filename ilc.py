@@ -42,54 +42,6 @@ def power_spectra_dic(map_dic = None, map_params = None, components = 'all', exp
                 cl_dic[(freq1, freq2)] = cl       
     
     return l, cl_dic
-'''
-
-def power_spectra_dic(map_dic = None, mapparams = None, components = 'all', experiment = None):
-    if map_dic is None:
-        # creating total power spectra dictionary
-        specs_dic, corr_noise_bands, rho = exp.specs(experiment)
-        freq_arr = sorted( specs_dic.keys() )
-        l, nl_dic = exp.noise_power_spectra_dic(experiment, deconvolve = True, use_cross_power = True)
-        cl_dic = {}
-        for freq1 in freq_arr:
-            for freq2 in freq_arr:
-                # obtaining extragalactic foreground power spectrum
-                l, cl_extragal = fg.extragalactic_power_spectrum(freq1, freq2, components)
-            
-                # obtaining deconvolved noise power spectra
-                if (freq1,freq2) in nl_dic:
-                    nl = nl_dic[(freq1,freq2)]
-                else:
-                    nl = nl_dic[freq1]
-                    if freq1 != freq2: 
-                        nl = np.copy(nl) * 0.
-           
-                # accounting for the case where beam deconvolution has made end nl pretty large  
-                ini_nl = np.median(nl[:100])
-                end_nl = np.median(nl[-100:])
-                if end_nl>ini_nl:             
-                        badinds = np.where(nl>=5000)[0]
-                        nl[badinds] = 5000
-            
-                # computing total power spectra and adding it to dictionary
-                cl_noise = cl_extragal + nl    
-                cl_noise[np.isnan(cl_noise)] = 0.
-                cl_dic[(freq1, freq2)] = cl_noise       
-    else:
-        freqarr = sorted(map_dic.keys())
-        cl_dic = {}
-        for cntr1, freq1 in enumerate( freqarr ):
-            for cntr2, freq2 in enumerate( freqarr ):
-                map1, map2 = map_dic[freq1], map_dic[freq2]
-                l, cl = tools.power_spectra(mapparams, map1, map2 = None, binsize = None)
-                cl = np.concatenate( (np.zeros(lmin), cl) )
-                cl[np.isnan(cl)] = 0.
-                cl[np.isinf(cl)] = 0.
-                cl_dic[(freq1, freq2)] = cl       
-    return l, cl_dic
-
-'''
-
 
 
 def create_clmat(freqarr, elcnt, cl_dic):
@@ -197,7 +149,7 @@ def residuals_and_weights(map_dic = None, mapparams = None, components = 'all', 
     return residual_and_weights
 
 
-def ilc_map(map_dic, opbeam, mapparams, experiment, components = 'all', cov_from_sims = True):
+def ilc_map(map_dic, opbeam, map_params, experiment, components = 'all', cov_from_sims = True):
     
     # collecting multifrequency maps
     freq_arr = sorted(map_dic.keys())
@@ -208,7 +160,7 @@ def ilc_map(map_dic, opbeam, mapparams, experiment, components = 'all', cov_from
        
     
     # obtaining weights     
-    res_weights = residuals_and_weights(map_dic, mapparams, components, experiment, cov_from_sims) 
+    res_weights = residuals_and_weights(map_dic, map_params, components, experiment, cov_from_sims) 
     l, cl_residual, res_ilc_dic, weights_arr = res_weights
    
     # rebeaming
@@ -216,7 +168,7 @@ def ilc_map(map_dic, opbeam, mapparams, experiment, components = 'all', cov_from
     bl_rebeam_arr = exp.rebeam(bl_dic)
 
     # computing 2D versions 
-    grid, _ = tools.make_grid(mapparams, harmonic = True)
+    grid, _ = tools.make_grid(map_params, harmonic = True)
     weights_arr_2D = []
     for currW in weights_arr:
         l = np.arange(len(currW)) 

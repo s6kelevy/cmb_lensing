@@ -166,46 +166,6 @@ def noise_power_spectrum(noiseval_white, noiseval_red, elknee, alphaknee, beam_f
         
     return l, nl
 
-def noise_power_spectrum2(noiseval_white, noiseval_red, elknee = -1, alphaknee = 0, beam_fwhm = None, noiseval_white2 = None, noiseval_red2 = None, elknee2 = -1, alphaknee2 = 0, beam_fwhm2 = None, rho = None):
-    l = np.arange(10000)
-    cross_band_noise = 0
-    if noiseval_white2 is not None and beam_fwhm2 is not None:
-        assert rho is not None
-        cross_band_noise = 1
-
-    if beam_fwhm is not None:
-        l, bl = beam_power_spectrum(beam_fwhm)
-        if cross_band_noise: l, bl2 = beam_power_spectrum(beam_fwhm2)
-
-    delta_T_radians = noiseval_white * np.radians(1./60.)
-    nl = np.tile(delta_T_radians**2., int(max(l)) + 1 )
-    nl = np.asarray( [nl[int(j)] for j in l] )
-    nl_white = np.copy(nl)
-
-    if cross_band_noise:
-        delta_T2_radians = noiseval_white2 * np.radians(1./60.)
-        nl2 = np.tile(delta_T2_radians**2., int(max(l)) + 1 )
-        nl2 = np.asarray( [nl2[int(j)] for j in l] )
-        nl2_white = np.copy(nl2)
-
-    if beam_fwhm is not None: 
-        nl *=  bl**(-1)
-        if cross_band_noise: nl2 *= bl2**(-1)
-
-    if elknee != -1.:
-        nl = np.copy(nl) * (1. + (l/elknee)**alphaknee )
-        if cross_band_noise and elknee2 != -1.:
-            nl2 = np.copy(nl2) * (1. + (l/elknee2)**alphaknee2 )
-
-    if cross_band_noise:
-        ###final_nl = rho * nl**0.5 * nl2**0.5
-        final_nl = rho * delta_T_radians * (l/elknee)**(alphaknee/2.) * delta_T2_radians * (l/elknee2)**(alphaknee2/2.)
-        #N[i,j,:] = rho * (w1*np.pi/180./60. * (ell/knee1)**(gamma1/2)) * (w2*np.pi/180./60. * (ell/knee2)**(gamma2/2))
-    else:
-        final_nl = np.copy(nl)
-
-    return l,final_nl
-
 
 def noise_power_spectra_dic(experiment, deconvolve = False, use_cross_power = False):
     
