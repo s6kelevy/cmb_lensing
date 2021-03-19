@@ -14,7 +14,7 @@ import tools
 #################################################################################################################################
 
 
-def cmb_mock_data(map_params, l, cl, cluster = None, centroid_shift_value = None, nber_ch = 1, cluster_corr_cutouts = None, cl_extragal = None, bl = None, nl = None):
+def cmb_mock_data(map_params, l, cl, cluster = None, centroid_shift_value = 0, nber_ch = 1, cluster_corr_cutouts = None, cl_extragal = None, bl = None, nl = None):
     
     nx, dx, ny, dy = map_params
     sim = tools.make_gaussian_realization(map_params, l, cl) 
@@ -30,12 +30,12 @@ def cmb_mock_data(map_params, l, cl, cluster = None, centroid_shift_value = None
     sims_ch_arr = [np.copy(sim) for k in range(nber_ch)]
     
     if cluster_corr_cutouts is not None:
-        if isinstance(cluster_corr_cutouts, list) is False:
+        if np.asarray(cluster_corr_cutouts).ndim is 3:
             cluster_corr_cutouts = [cluster_corr_cutouts]
         cluster_corr_cutout = cluster_corr_cutouts[0][0]
         nx_cutout, ny_cutout = cluster_corr_cutout.shape[0], cluster_corr_cutout.shape[1]
         s, e = int((nx-nx_cutout)/2), int((ny+ny_cutout)/2)
-        rand_sel = random.randint(0, len(cluster_corr_cutouts_arr[0])-1)
+        rand_sel = random.randint(0, len(cluster_corr_cutouts[0])-1)
         rand_ang = random.randint(-180,180)
         for j in range(nber_ch):
             cluster_corr_cutout = tools.rotate(cluster_corr_cutouts[j][rand_sel], rand_ang)

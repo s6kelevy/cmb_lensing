@@ -14,7 +14,12 @@ import sims
 #################################################################################################################################
 
 
-def get_aligned_cutout(map_params, image, l, cl, cl_noise):
+def get_aligned_cutout(map_params, image, l = None, cl = None, cl_noise = None):  
+        
+    if cl_noise is None:
+        l = np.arange(10000)
+        cl = np.ones(max(l)+1)
+        cl_noise = np.zeros(max(l)+1)
     
     _, dx, _, _ = map_params
     cutout = tools.central_cutout(map_params, image, 10)
@@ -47,17 +52,12 @@ def get_stack(cutouts, magnitude_weights = None, noise_weights = None):
 
 def lensing_dipole_profile(map_params, maps_clus, maps_rand,  l = None, cl = None, cl_noise = None, use_magnitude_weights = True, noise_weights = None, correct_for_tsz = False):
     
-    if cl_noise is None:
-        l = np.arange(10000)
-        cl = np.ones(max(l)+1)
-        cl_noise = np.zeros(max(l)+1)
-    
     stacks = []
     
     cutouts_arr = []
     magnitude_weights_clus_arr = []
     for i in tqdm(range(len(maps_clus))):
-        cutout, weight = get_aligned_cutout(map_params, maps_clus[i], l, cl, cl_noise)
+        cutout, weight = get_aligned_cutout(map_params, maps_clus[i], l = l, cl = cl, cl_noise = cl_noise)
         cutouts_arr.append(cutout)
         magnitude_weights_clus_arr.append(weight)
     if use_magnitude_weights is False:
@@ -68,12 +68,12 @@ def lensing_dipole_profile(map_params, maps_clus, maps_rand,  l = None, cl = Non
     cutouts_arr = []
     magnitude_weights_rand_arr = []
     for i in tqdm(range(len(maps_rand))):
-        cutout, weight = get_aligned_cutout(mapparams, maps_rand[i], l, cl, cl_noise)
+        cutout, weight = get_aligned_cutout(map_params, maps_rand[i], l = l, cl = cl, cl_noise = cl_noise)
         cutouts_arr.append(cutout)
         magnitude_weights_rand_arr.append(weight)
     if use_magnitude_weights is False:
         magnitude_weights_rand_arr = None
-    stack_bg = get_stack(cutouts_arr, magnitudes_weight_rand_arr, noise_weights)
+    stack_bg = get_stack(cutouts_arr, magnitude_weights_rand_arr, noise_weights)
     stacks.append(stack_bg)
     
     stack_dipole = stack_clus-stack_bg
@@ -82,16 +82,16 @@ def lensing_dipole_profile(map_params, maps_clus, maps_rand,  l = None, cl = Non
     if correct_for_tsz is True:
         cutouts_arr = []
         for i in tqdm(range(len(maps_clus))):
-            cutout = tools.central_cutout(map_params, image, 10)
+            cutout = tools.central_cutout(map_params, maps_clus[i], 10)
             cutout -= np.median(cutout)
-            cutouts_arr_rand.append(cutout)
+            cutouts_arr.append(cutout)
         stack_tsz = get_stack(cutouts_arr, magnitude_weights_clus_arr, noise_weights) 
         stacks.append(stack_tsz)
         stack_dipole_corrected = stack_dipole - stack_tsz
         stacks.append(stack_dipole_corrected)
         stack_dipole = np.copy(stack_dipole_corrected)
         
-    _, dx, _, _ = mapparams
+    _, dx, _, _ = map_params
     bins = np.arange((-40*dx)/2, (40*dx)/2, dx)
     profile_lensing_dipole = np.median(stack_dipole, axis = 0)            
     
@@ -143,7 +143,7 @@ def covariance_and_correlation_matrix(nber_cov, nber_clus, map_params, l, cl, fr
     return covariance_matrix, correlation_matrix
 
 
-def model_profiles(nber_clus_fit, nber_rand_fit, map_params, l, cl, mass_int, c, z, centroid_shift_value = None, cl_extragal = None, bl = None, cl_noise = None, use_magnitude_weights = True, use_noise_weights = False, apply_noise = True):
+def model_profiles(nber_clus_fit, nber_rand_fit, map_params, l, cl, mass_int, c, z, centroid_shift_value = 0, cl_extragal = None, bl = None, cl_noise = None, use_magnitude_weights = True, use_noise_weights = False, apply_noise = True):
     
     nx, dx, ny, dy = map_params
     if cl_noise is None:
