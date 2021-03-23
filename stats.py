@@ -135,6 +135,15 @@ def run_mcmc(data, guess, offset, nwalkers, priors, nber_steps, burn_in):
 #################################################################################################################################
 
 
+def combined_likelihood(x, likelihood_arr):
+    comb_lk = np.ones(len(likelihood_arr[0]))
+    for i in range(len(likelihood_arr)):
+        comb_lk *= likelihood_arr[i]
+    comb_lk = comb_lk/max(comb_lk)
+    median_value, error = stats.ml_params(x, comb_lk)      
+    return comb_lk, median_value, error
+
+
 def signal_to_noise(pdf):
     lnpdf = np.log(pdf)
     delta_chisq = 2*(max(lnpdf) - lnpdf[0])
