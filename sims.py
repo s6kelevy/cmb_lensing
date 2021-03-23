@@ -107,7 +107,7 @@ def cmb_test_data(nber_maps, validation_analyis = False, clus_position_analysis 
     l, nl = exp.white_noise_power_spectrum(2.0)
     
     if validation_analyis is True:
-        sims_2e14, sims_6e14, sims_10e14 = [], [], []
+        sims_clus_2e14, sims_clus_6e14, sims_clus_10e14 = [], [], []
         kappa_map_2e14 = lensing.NFW(2e14, 3, 1, 1100).convergence_map(map_params)
         kappa_map_6e14 = lensing.NFW(6e14, 3, 1, 1100).convergence_map(map_params)
         kappa_map_10e14 = lensing.NFW(10e14, 3, 1, 1100).convergence_map(map_params)
@@ -116,20 +116,20 @@ def cmb_test_data(nber_maps, validation_analyis = False, clus_position_analysis 
         alpha_vec_10e14 = lensing.deflection_from_convergence(map_params, kappa_map_10e14)
         for i in range(nber_maps):
             sim = tools.make_gaussian_realization(map_params, l, cl) 
-            sim_2e14 = lensing.lens_map(map_params, sim, alpha_vec_2e14)
-            sim_6e14 = lensing.lens_map(map_params, sim, alpha_vec_6e14)
-            sim_10e14 = lensing.lens_map(map_params, sim, alpha_vec_10e14)
-            sim_2e14 = tools.convolve(sim_2e14, l, np.sqrt(bl), map_params = map_params)
-            sim_6e14 = tools.convolve(sim_6e14, l, np.sqrt(bl), map_params = map_params)
-            sim_10e14 = tools.convolve(sim_10e14, l, np.sqrt(bl), map_params = map_params)
+            sim_clus_2e14 = lensing.lens_map(map_params, sim, alpha_vec_2e14)
+            sim_clus_6e14 = lensing.lens_map(map_params, sim, alpha_vec_6e14)
+            sim_clus_10e14 = lensing.lens_map(map_params, sim, alpha_vec_10e14)
+            sim_clus_2e14 = tools.convolve(sim_2e14, l, np.sqrt(bl), map_params = map_params)
+            sim_clus_6e14 = tools.convolve(sim_6e14, l, np.sqrt(bl), map_params = map_params)
+            sim_clus_10e14 = tools.convolve(sim_10e14, l, np.sqrt(bl), map_params = map_params)
             noise_map =  tools.make_gaussian_realization(map_params, l, nl)
-            sim_2e14 += noise_map
-            sim_6e14 += noise_map
-            sim_10e14 += noise_map
-            sims_2e14.append(sim_2e14)
-            sims_6e14.append(sim_6e14)
-            sims_10e14.append(sim_10e14)            
-        return sims_2e14, sims_6e14, sims_10e14
+            sim_clus_2e14 += noise_map
+            sim_clus_6e14 += noise_map
+            sim_clus_10e14 += noise_map
+            sims_clus_2e14.append(sim_2e14)
+            sims_clus_6e14.append(sim_6e14)
+            sims_clus_10e14.append(sim_10e14)            
+        return sims_clus_2e14, sims_clus_6e14, sims_clus_10e14
     
     if clus_position_analysis is True:
         sims_baseline, sims_centorid_shift = [], []
