@@ -18,13 +18,13 @@ def cmb_mock_data(map_params, l, cl, cluster = None, centroid_shift_value = 0, n
     
     nx, dx, ny, dy = map_params
     sim = tools.make_gaussian_realization(map_params, l, cl) 
-   
+    
     if cluster is not None:
         M, c, z = cluster
         x_shift, y_shift = np.random.normal(loc=0.0, scale = centroid_shift_value), np.random.normal(loc=0.0, scale = centroid_shift_value) 
         centroid_shift = [x_shift, y_shift]
-        kappa = lensing.NFW(M, c, z, 1100).convergence_map(map_params, centroid_shift = centroid_shift)
-        alpha_vec = lensing.deflection_from_convergence(map_params, kappa)
+        kappa_map = lensing.NFW(M, c, z, 1100).convergence_map(map_params, centroid_shift = centroid_shift)
+        alpha_vec = lensing.deflection_from_convergence(map_params, kappa_map)
         sim = lensing.lens_map(map_params, sim, alpha_vec) 
     
     sims_ch_arr = [np.copy(sim) for k in range(nber_ch)]
@@ -67,7 +67,7 @@ def cmb_mock_data(map_params, l, cl, cluster = None, centroid_shift_value = 0, n
     return sims_ch_arr 
 
 
-def cmb_mock_data_dic(freq_arr, mapparams, l, cl, cluster = None, centroid_shift = None, cluster_corr_cutouts_dic = None, cl_extragal_dic = None, bl_dic = None, nl_dic = None):
+def cmb_mock_data_dic(freq_arr, mapparams, l, cl, cluster = None, centroid_shift_value = 0, cluster_corr_cutouts_dic = None, cl_extragal_dic = None, bl_dic = None, nl_dic = None):
     
     nber_ch = len(freq_arr)
     
@@ -91,7 +91,7 @@ def cmb_mock_data_dic(freq_arr, mapparams, l, cl, cluster = None, centroid_shift
     else:
         nl_arr = None
     
-    sims = cmb_mock_data(mapparams, l, cl, cluster = cluster, centroid_shift = centroid_shift, nber_ch = nber_ch, cluster_corr_cutouts = cluster_corr_cutouts_arr, ck_extragal = cl_extragal_arr, bl = bl_arr, nl = nl_arr)
+    sims = cmb_mock_data(mapparams, l, cl, cluster = cluster, centroid_shift_value = centroid_shift_value, nber_ch = nber_ch, cluster_corr_cutouts = cluster_corr_cutouts_arr, cl_extragal = cl_extragal_arr, bl = bl_arr, nl = nl_arr)
     map_dic = {}
     for i, freq in enumerate(freq_arr):
         map_dic[freq] = sims[i]
@@ -104,7 +104,7 @@ def cmb_test_data(nber_maps, validation_analyis = False, clus_position_analysis 
     map_params = [nx, dx, ny, dy]
     l, cl = CosmoCalc().cmb_power_spectrum()
     l, bl = exp.beam_power_spectrum(1.4)
-    l, nl = exp.noise_power_spectrum(2.0)
+    l, nl = exp.white_noise_power_spectrum(2.0)
     
     if validation_analyis is True:
         sims_2e14, sims_6e14, sims_10e14 = [], [], []

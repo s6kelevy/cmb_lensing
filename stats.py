@@ -80,7 +80,7 @@ def ml_params(x, likelihood_curve, nsamples = 1000000, burn_in = 5000):
     median_value = values[1]
     low_error = median_value - values[0]
     high_error = values[2] - median_value
-    error = (high_error-low_error)/2
+    error = (high_error+low_error)/2
     return median_value, error
 
 

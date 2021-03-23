@@ -45,7 +45,6 @@ def get_stack(cutouts, magnitude_weights = None, noise_weights = None):
     weights = np.array(magnitude_weights)*np.array(noise_weights)
     weighted_cutouts = [cutouts[i]*weights[i] for i in range(len(cutouts))]
     stack = np.sum(weighted_cutouts, axis = 0)/sum(weights)
-    stack -= np.median(stack)
     
     return stack
 
@@ -56,7 +55,7 @@ def lensing_dipole_profile(map_params, maps_clus, maps_rand,  l = None, cl = Non
     
     cutouts_arr = []
     magnitude_weights_clus_arr = []
-    for i in tqdm(range(len(maps_clus))):
+    for i in range(len(maps_clus)):
         cutout, weight = get_aligned_cutout(map_params, maps_clus[i], l = l, cl = cl, cl_noise = cl_noise)
         cutouts_arr.append(cutout)
         magnitude_weights_clus_arr.append(weight)
@@ -67,7 +66,7 @@ def lensing_dipole_profile(map_params, maps_clus, maps_rand,  l = None, cl = Non
     
     cutouts_arr = []
     magnitude_weights_rand_arr = []
-    for i in tqdm(range(len(maps_rand))):
+    for i in range(len(maps_rand)):
         cutout, weight = get_aligned_cutout(map_params, maps_rand[i], l = l, cl = cl, cl_noise = cl_noise)
         cutouts_arr.append(cutout)
         magnitude_weights_rand_arr.append(weight)
@@ -81,7 +80,7 @@ def lensing_dipole_profile(map_params, maps_clus, maps_rand,  l = None, cl = Non
     
     if correct_for_tsz is True:
         cutouts_arr = []
-        for i in tqdm(range(len(maps_clus))):
+        for i in range(len(maps_clus)):
             cutout = tools.central_cutout(map_params, maps_clus[i], 10)
             cutout -= np.median(cutout)
             cutouts_arr.append(cutout)
@@ -93,7 +92,7 @@ def lensing_dipole_profile(map_params, maps_clus, maps_rand,  l = None, cl = Non
         
     _, dx, _, _ = map_params
     bins = np.arange((-40*dx)/2, (40*dx)/2, dx)
-    profile_lensing_dipole = np.median(stack_dipole, axis = 0)            
+    profile_lensing_dipole = np.mean(stack_dipole, axis = 0)            
     
     return bins, profile_lensing_dipole, stacks
     
@@ -118,7 +117,7 @@ def covariance_and_correlation_matrix(nber_cov, nber_clus, map_params, l, cl, fr
    
         cutouts = []
         magnitude_weights_clus = []
-        for i in tqdm(range(len(maps_clus))):
+        for i in range(len(maps_clus)):
             cutout, weight = get_aligned_cutout(map_params, maps_clus[i], l, cl, cl_noise)
             cutouts.append(cutout)
             magnitude_weights_clus.append(weight)
@@ -128,39 +127,41 @@ def covariance_and_correlation_matrix(nber_cov, nber_clus, map_params, l, cl, fr
        
         if correct_for_tsz is True:
             cutouts = []
-            for i in tqdm(range(len(maps_clus))):
+            for i in range(len(maps_clus)):
                 cutout = tools.central_cutout(map_params, image, 10)
                 cutout -= np.median(cutout)
                 cutouts_rand.append(cutout)
             stack_tsz = get_stack(cutouts, magnitude_weights_clus, noise_weights) 
             stack_clus -= stack_tsz
 
-        profile_lensing_dipole = np.median(stack_clus, axis = 0)    
+        profile_lensing_dipole = np.mean(stack_clus, axis = 0)    
         sims_for_covariance.append(profile_lensing_dipole) 
    
-    covariance_matrix, correlation_matrix = stats.covariance_and_correlation_matrix(sims_for_covariance, int(nber_pixels))
+    covariance_matrix, correlation_matrix = stats.covariance_and_correlation_matrix(sims_for_covariance)
     
     return covariance_matrix, correlation_matrix
 
 
-def model_profiles(nber_clus_fit, nber_rand_fit, map_params, l, cl, mass_int, c, z, centroid_shift_value = 0, cl_extragal = None, bl = None, cl_noise = None, use_magnitude_weights = True, use_noise_weights = False, apply_noise = True):
+def model_profiles(nber_clus_fit, nber_rand_fit, map_params, l, cl, mass_int, c200c, z, centroid_shift_value = 0, cl_extragal = None, bl = None, cl_noise = None, use_magnitude_weights = True, use_noise_weights = False, apply_noise = True):
     
     nx, dx, ny, dy = map_params
     if cl_noise is None:
         cl_noise = np.zeros(max(l)+1)
-        
+    
+    mass_int = np.copy(mass_int)*1e14
+    
     cutouts_clus_arr = []
     magnitude_weights_clus_arr = []    
     for i in tqdm(range(nber_clus_fit)):
-        sim = tools.make_gaussian_realization(map_params, l, cl) 
+        sim = sims.cmb_mock_data(map_params, l, cl)
         x_shift, y_shift = np.random.normal(loc=0.0, scale = centroid_shift_value), np.random.normal(loc=0.0, scale = centroid_shift_value) 
         centroid_shift = [x_shift, y_shift]
         for j in range(len(mass_int)):
-            kappa_map = lensing.NFW(mass_int[j], c, z, 1100).convergence_map(map_params, centroid_shift = centroid_shift)
+            kappa_map = lensing.NFW(mass_int[j], c200c, z, 1100).convergence_map(map_params, centroid_shift = centroid_shift)
             alpha_vec = lensing.deflection_from_convergence(map_params, kappa_map)
             sim_lensed = lensing.lens_map(map_params, sim, alpha_vec)   
             sim_lensed_noise = np.copy(sim_lensed)
-            total_noise_map = tools.make_gaussian_realization(mapparams, l, cl_noise)
+            total_noise_map = tools.make_gaussian_realization(map_params, l, cl_noise)
             sim_lensed_noise += total_noise_map
             if bl is not None:
                 sim_lensed = tools.convolve(sim_lensed, l, np.sqrt(bl), map_params = map_params)
@@ -170,7 +171,7 @@ def model_profiles(nber_clus_fit, nber_rand_fit, map_params, l, cl, mass_int, c,
             cutout = tools.central_cutout(map_params, sim_lensed, 10) 
             wiener_filter = tools.wiener_filter(l, cl, cl_noise)
             filtered_map = tools.convolve(sim_lensed_noise, l, wiener_filter, map_params) 
-            low_pass_filter = tool.low_pass_filter(l, 2000)
+            low_pass_filter = tools.low_pass_filter(l, 2000)
             filtered_map = tools.convolve(filtered_map, l, low_pass_filter, map_params) 
             filtered_cutout = tools.central_cutout(map_params, filtered_map, 6)
             _, _, magnitude, angle = tools.gradient(filtered_cutout, dx)
@@ -186,9 +187,9 @@ def model_profiles(nber_clus_fit, nber_rand_fit, map_params, l, cl, mass_int, c,
     cutouts_rand_arr = []
     magnitude_weights_rand_arr = []    
     for i in tqdm(range(nber_rand_fit)):
-        sim = tools.make_gaussian_realization(map_params, l, cl) 
+        sim = sims.cmb_mock_data(map_params, l, cl) 
         sim_noise = np.copy(sim)
-        total_noise_map = tools.make_gaussian_realization(mapparams, l, cl_noise)
+        total_noise_map = tools.make_gaussian_realization(map_params, l, cl_noise)
         sim_noise += total_noise_map
         if bl is not None:
             sim = tools.convolve(sim, l, np.sqrt(bl), map_params = map_params)
@@ -198,7 +199,7 @@ def model_profiles(nber_clus_fit, nber_rand_fit, map_params, l, cl, mass_int, c,
         cutout = tools.central_cutout(map_params, sim, 10)
         wiener_filter = tools.wiener_filter(l, cl, cl_noise)
         filtered_map = tools.convolve(sim_noise, l, wiener_filter, map_params) 
-        low_pass_filter = tool.low_pass_filter(l, 2000)
+        low_pass_filter = tools.low_pass_filter(l, 2000)
         filtered_map = tools.convolve(filtered_map, l, low_pass_filter, map_params) 
         filtered_cutout = tools.central_cutout(map_params, filtered_map, 6)
         _, _, magnitude, angle = tools.gradient(filtered_cutout, dx)
@@ -211,14 +212,12 @@ def model_profiles(nber_clus_fit, nber_rand_fit, map_params, l, cl, mass_int, c,
         magnitude_weights_rand_arr = np.ones(nber_rand_fit)
     weighted_cutouts = [cutouts_rand_arr[i]*magnitude_weights_rand_arr [i] for i in range(nber_rand_fit)]
     stack_bg = np.sum(weighted_cutouts, axis = 0)/np.sum(magnitude_weights_rand_arr)
-    stack_bg -= np.median(stack_bg)
     
     profile_models_arr = [] 
     for i in tqdm(range(len(mass_int))):
         stack_clus = np.sum(cutouts_clus_arr[i::len(mass_int)], axis = 0)/np.sum(magnitude_weights_clus_arr[i::len(mass_int)])
-        stack_clus -= np.median(stack_clus)
         stack_dipole = stack_clus-stack_bg
-        profile_model = np.median(stack_dipole, axis = 0)   
+        profile_model = np.mean(stack_dipole, axis = 0)   
         profile_models_arr.append(profile_model)
     
     return profile_models_arr
