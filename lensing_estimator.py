@@ -111,8 +111,8 @@ def covariance_and_correlation_matrix(nber_cov, nber_clus, map_params, l, cl, fr
                 map_clus = sims.cmb_mock_data(map_params, l, cl, cluster_corr_cutouts = cluster_corr_cutouts, cl_extragal = cl_extragal, bl = bl, nl = nl)
                 maps_clus.append(map_clus)
             else:
-                freq_maps_clus_dict = sims.cmb_mock_data_dict(freq_arr, map_params, l, cl, cluster_corr_cutouts_dict = cluster_corr_cutouts, cl_extragal_dict = cl_extragal, bl_dict = bl, nl_dict = nl)
-                map_clus, _ = ilc.ilc_map(freq_maps_clus_dict, opbeam, map_params, experiment, components = components)
+                freq_maps_clus_dic = sims.cmb_mock_data_dic(freq_arr, map_params, l, cl, cluster_corr_cutouts_dic = cluster_corr_cutouts, cl_extragal_dic = cl_extragal, bl_dic = bl, nl_dic = nl)
+                map_clus, _ = ilc.ilc_map(freq_maps_clus_dic, opbeam, map_params, experiment, components = components)
                 maps_clus.append(map_clus)
    
         cutouts = []
