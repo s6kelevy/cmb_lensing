@@ -119,16 +119,16 @@ def cmb_test_data(nber_maps, validation_analyis = False, clus_position_analysis 
             sim_clus_2e14 = lensing.lens_map(map_params, sim, alpha_vec_2e14)
             sim_clus_6e14 = lensing.lens_map(map_params, sim, alpha_vec_6e14)
             sim_clus_10e14 = lensing.lens_map(map_params, sim, alpha_vec_10e14)
-            sim_clus_2e14 = tools.convolve(sim_2e14, l, np.sqrt(bl), map_params = map_params)
-            sim_clus_6e14 = tools.convolve(sim_6e14, l, np.sqrt(bl), map_params = map_params)
-            sim_clus_10e14 = tools.convolve(sim_10e14, l, np.sqrt(bl), map_params = map_params)
+            sim_clus_2e14 = tools.convolve(sim_clus_2e14, l, np.sqrt(bl), map_params = map_params)
+            sim_clus_6e14 = tools.convolve(sim_clus_6e14, l, np.sqrt(bl), map_params = map_params)
+            sim_clus_10e14 = tools.convolve(sim_clus_10e14, l, np.sqrt(bl), map_params = map_params)
             noise_map =  tools.make_gaussian_realization(map_params, l, nl)
             sim_clus_2e14 += noise_map
             sim_clus_6e14 += noise_map
             sim_clus_10e14 += noise_map
-            sims_clus_2e14.append(sim_2e14)
-            sims_clus_6e14.append(sim_6e14)
-            sims_clus_10e14.append(sim_10e14)            
+            sims_clus_2e14.append(sim_clus_2e14)
+            sims_clus_6e14.append(sim_clus_6e14)
+            sims_clus_10e14.append(sim_clus_10e14)            
         return sims_clus_2e14, sims_clus_6e14, sims_clus_10e14
     
     if clus_position_analysis is True:
