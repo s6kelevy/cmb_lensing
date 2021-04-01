@@ -6,11 +6,11 @@ import scipy.ndimage
 #################################################################################################################################
 
 
-def make_grid(map_params, harmonic = False):    
+def make_grid(map_params, Fourier = False):    
 
     # creating 1D x and y arrays and their limits
     nx, dx, ny, dy = map_params
-    if harmonic is False:
+    if Fourier is False:
         x_min, x_max = -nx*dx/2, nx*dx/2 # in arcmins
         y_min, y_max = -ny*dy/2, ny*dy/2 # in arcmins
         x, y = np.linspace(x_min, x_max, nx), np.linspace(y_min, y_max, ny) # in arcmins
@@ -33,7 +33,7 @@ def make_grid(map_params, harmonic = False):
 
 
 def convert_to_2d(grid, x, signal_1d):
-  
+      
     X, Y = grid[0], grid[1]
     R = np.hypot(X, Y)
     signal_2d = np.interp(R.flatten(), x, signal_1d, right = 0).reshape(R.shape) 
@@ -45,7 +45,7 @@ def convolve(signal, l, kernel, map_params = None):
     
     signal_fft = np.fft.fft2(signal)
     if map_params is not None:
-        grid, _ = make_grid(map_params, harmonic = True)
+        grid, _ = make_grid(map_params, Fourier = True)
         kernel = convert_to_2d(grid, l, kernel) 
         kernel[np.isnan(kernel)] = 0
     signal_convolved = np.fft.ifft2(kernel*signal_fft).real 
@@ -88,9 +88,9 @@ def rotate(image, angle):
 
 def central_cutout(map_params, image, size):
 
-    nx, dx, ny, dy = map_params
-    nber_pixels = size/dx
-    s, e = int((ny-nber_pixels)/2), int((ny+nber_pixels)/2)
+    nx, dx, _, _ = map_params
+    nber_pixels = int(size/dx)
+    s, e = int((nx-nber_pixels)/2), int((nx+nber_pixels)/2)
     cutout = image[s:e, s:e]     
     
     return cutout
@@ -151,7 +151,7 @@ def power_spectra(map_params, image, image2 = None, binsize = None):
     nx, dx, ny, dy = map_params
     dx_rad = np.radians(dx/60.)
 
-    grid, _ = make_grid(map_params, harmonic = True)
+    grid, _ = make_grid(map_params, Fourier = True)
     lx, ly = grid
     if binsize == None:
         bin_size = lx.ravel()[1] -lx.ravel()[0]

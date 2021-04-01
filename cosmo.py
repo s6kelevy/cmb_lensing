@@ -98,3 +98,41 @@ class CosmoCalc:
         cl = dl * 2 * np.pi / (l*(l+1))
         
         return l, cl
+
+    
+##################################################################################################################################
+
+
+def concentration_parameter(M, z, h, kind='200', profile_name = 'NFW'):
+    """
+    Concentration from c(M) relation published in Duffy et al. (2008).
+    """
+
+    M_pivot = 2.e12/h # [M_sun]
+    
+    if profile_name == 'NFW':
+        if kind == '200':
+            A = 5.71
+            B = -0.084
+            C = -0.47
+        elif kind == 'vir':
+            A = 7.85 
+            B = -0.081
+            C = -0.71
+    elif profile_name == 'Einasto':
+        if kind == '200':
+            A = 6.4
+            B = -0.108
+            C = -0.62
+        elif kind == 'vir':
+            A = 8.82 
+            B = -0.106
+            C = -0.87
+
+
+    if M>0:
+            concentration = A * ((M / M_pivot)**B) * (1+z)**C
+    else:
+            concentration = 0.
+
+    return concentration

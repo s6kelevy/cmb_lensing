@@ -36,7 +36,7 @@ def critical_surface_mass_density(zl, zs):
 def deflection_from_convergence(mapparams, kappa_map):
     
     # defining underlying grid in harmonic space
-    grid, _ = tools.make_grid(mapparams, harmonic = True)
+    grid, _ = tools.make_grid(mapparams, Fourier = True)
     lX, lY = grid
     l2d = np.hypot(lX, lY)
     

@@ -168,7 +168,7 @@ def ilc_map(map_dic, opbeam, map_params, experiment, components = 'all', cov_fro
     bl_rebeam_arr = exp.rebeam(bl_dic)
 
     # computing 2D versions 
-    grid, _ = tools.make_grid(map_params, harmonic = True)
+    grid, _ = tools.make_grid(map_params, Fourier = True)
     weights_arr_2D = []
     for currW in weights_arr:
         l = np.arange(len(currW)) 
