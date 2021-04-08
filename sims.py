@@ -173,7 +173,7 @@ def cmb_test_data(map_params, l, cl, cluster = None, centroid_shift_value = 0, c
     
     
     if clus_positions is True:
-        sims_clus_baseline, sims_clus_centorid_shift = [], []
+        sims_clus_baseline, sims_clus_centroid_shift = [], []
         kappa_map_baseline = lensing.NFW(cluster[0], cluster[1], cluster[2], 1100).convergence_map(map_params)
         alpha_vec_baseline = lensing.deflection_from_convergence(map_params, kappa_map_baseline)
         for i in range(nber_obs):    

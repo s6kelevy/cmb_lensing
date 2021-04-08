@@ -10,6 +10,31 @@ import emcee
 #################################################################################################################################
 
 
+def jackknife_resampling(data, noofsims):
+    total = len(data)
+    each_split_should_contain = int(total * 1./noofsims)
+    fullarr = np.arange(total)
+    inds_to_pick = np.arange(len(fullarr))
+    already_picked_inds = []
+    jk_samples = []
+    for n in range(noofsims):
+        inds = np.random.choice(inds_to_pick, size = each_split_should_contain, replace = 0)
+        inds_to_delete = np.where (np.in1d(inds_to_pick, inds) == True)[0]
+        inds_to_pick = np.delete(inds_to_pick, inds_to_delete)
+        tmp = np.in1d(fullarr, inds)
+        non_inds = np.where(tmp == False)[0]
+        jk_samples.append( (non_inds) )
+     
+    resamples = []
+    for i in range(noofsims):
+        resample = [data[jk_samples[i][j]] for j in range(total-each_split_should_contain)]
+        resamples.append(resample)
+    return resamples, jk_samples
+
+
+#################################################################################################################################
+
+
 def covariance_and_correlation_matrix(sample):
     
     matrix = np.concatenate(sample)
@@ -49,7 +74,7 @@ def likelihood_function(data, models, param_int, make_finer = 1):
     x, y, cov = data 
     ln_like = []
     for i in range(len(models)):
-        diff = y - models[i]
+        diff = (y - models[i]).flatten()
         chi_2 = np.dot(diff.flatten(), np.linalg.solve(cov, diff.flatten()))
         ln_L =  -0.5*chi_2
         ln_like.append(ln_L)

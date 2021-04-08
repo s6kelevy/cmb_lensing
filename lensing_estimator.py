@@ -29,11 +29,6 @@ def get_aligned_cutout(map_params, image, image_noiseless = None, cutout_size_am
     wiener_filter = tools.wiener_filter(l, cl, cl_noise)
     low_pass_filter = tools.low_pass_filter(l, l_cut)
     filtered_map = tools.convolve(image, l, wiener_filter * low_pass_filter, map_params) 
-    #cutout = tools.central_cutout(map_params, image, cutout_size_am)
-    #wiener_filter = tools.wiener_filter(l, cl, cl_noise)
-    #filtered_map = tools.convolve(image, l, wiener_filter, map_params) 
-    #low_pass_filter = tools.low_pass_filter(l, l_cut)
-    #filtered_map = tools.convolve(filtered_map, l, low_pass_filter, map_params) 
     filtered_cutout = tools.central_cutout(map_params, filtered_map, cutout_size_for_grad_est_am)
     _, _, magnitude, angle = tools.gradient(filtered_cutout, dx)
     angle, magnitude_weight = np.median(angle), np.median(magnitude) 
@@ -91,7 +86,7 @@ def lensing_dipole(map_params, stack_clus, stack_bg, stack_tsz = None):
     
         
     nx, dx, _, _ = map_params
-    bins = np.arange((-40*dx)/2, (40*dx)/2, dx)
+    bins = np.arange((-40*dx)/2., (40*dx)/2., dx)+dx/2.
     profile_lensing_dipole = np.mean(stack_dipole, axis = 0)            
     
     return bins, profile_lensing_dipole, stack_dipole
@@ -162,20 +157,6 @@ def model_profiles(nber_clus_fit, nber_rand_fit, map_params, l, cl, mass_int, z,
                 sim_lensed_noise = tools.convolve(sim_lensed_noise, l, np.sqrt(bl), map_params = map_params)
             if apply_noise is False:
                 sim_lensed_noise = np.copy(sim_lensed)
-           # cutout = tools.central_cutout(map_params, sim_lensed, 10) 
-           # wiener_filter = tools.wiener_filter(l, cl, cl_noise)
-           # filtered_map = tools.convolve(sim_lensed_noise, l, wiener_filter, map_params) 
-          #  low_pass_filter = tools.low_pass_filter(l, 2000)
-          #  filtered_map = tools.convolve(filtered_map, l, low_pass_filter, map_params) 
-          #  filtered_cutout = tools.central_cutout(map_params, filtered_map, 6)
-          #  _, _, magnitude, angle = tools.gradient(filtered_cutout, dx)
-          #  angle, magnitude_weight = np.median(angle), np.median(magnitude) 
-          #  cutout_aligned = tools.rotate(cutout, angle)
-          #  cutout_aligned -= np.median(cutout_aligned)
-         #   if use_magnitude_weights is False:
-        #        magnitude_weight = 1
-         #   cutouts_clus_arr.append(cutout_aligned*magnitude_weight)
-         #   magnitude_weights_clus_arr.append(magnitude_weight)
     
             cutout_aligned, magnitude_weight = get_aligned_cutout(map_params, sim_lensed_noise, image_noiseless = sim_lensed,
                                                                   l = l, cl = cl, cl_noise = cl_noise)
@@ -184,35 +165,6 @@ def model_profiles(nber_clus_fit, nber_rand_fit, map_params, l, cl, mass_int, z,
             cutouts_clus_arr.append(cutout_aligned*magnitude_weight)
             magnitude_weights_clus_arr.append(magnitude_weight)
     
-   # cutouts_rand_arr = []
-   # magnitude_weights_rand_arr = []    
-   # for i in tqdm(range(nber_rand_fit)):
-   #     sim = sims.cmb_mock_data(map_params, l, cl) 
-   #     sim_noise = np.copy(sim)
-   #     total_noise_map = tools.make_gaussian_realization(map_params, l, cl_noise)
-   #     sim_noise += total_noise_map
-   #     if bl is not None:
-   #         sim = tools.convolve(sim, l, np.sqrt(bl), map_params = map_params)
-   #         sim_noise = tools.convolve(sim_noise, l, np.sqrt(bl), map_params = map_params)
-   #     if apply_noise is False:
-   #         sim_noise = np.copy(sim)
-   #     cutout = tools.central_cutout(map_params, sim, 10)
-   #     wiener_filter = tools.wiener_filter(l, cl, cl_noise)
-   #     filtered_map = tools.convolve(sim_noise, l, wiener_filter, map_params) 
-   #     low_pass_filter = tools.low_pass_filter(l, 2000)
-   #     filtered_map = tools.convolve(filtered_map, l, low_pass_filter, map_params) 
-   #     filtered_cutout = tools.central_cutout(map_params, filtered_map, 6)
-   #     _, _, magnitude, angle = tools.gradient(filtered_cutout, dx)
-   #     angle, magnitude_weight = np.median(angle), np.median(magnitude) 
-   #     cutout_aligned = tools.rotate(cutout, angle)
-   #     cutout_aligned -= np.median(cutout_aligned)
-   #     cutouts_rand_arr.append(cutout_aligned)
-   #     magnitude_weights_rand_arr.append(magnitude_weight)
-   # if use_magnitude_weights is False:
-   #     magnitude_weights_rand_arr = np.ones(nber_rand_fit)
-   # weighted_cutouts = [cutouts_rand_arr[i]*magnitude_weights_rand_arr [i] for i in range(nber_rand_fit)]
-   # stack_bg = np.sum(weighted_cutouts, axis = 0)/np.sum(magnitude_weights_rand_arr)
-   
     profile_models_arr = [] 
     stack_bg = np.sum(cutouts_clus_arr[0::len(mass_int)], axis = 0)/np.sum(magnitude_weights_clus_arr[0::len(mass_int)])
     for i in tqdm(range(len(mass_int))):

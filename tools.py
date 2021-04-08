@@ -36,7 +36,7 @@ def convert_to_2d(grid, x, signal_1d):
       
     X, Y = grid[0], grid[1]
     R = np.hypot(X, Y)
-    signal_2d = np.interp(R.flatten(), x, signal_1d, right = 0).reshape(R.shape) 
+    signal_2d = np.interp(R.flatten(), x, signal_1d, right = 0.).reshape(R.shape) 
     
     return signal_2d
 
