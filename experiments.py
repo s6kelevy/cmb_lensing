@@ -8,7 +8,7 @@ import tools
 
 def specs(experiment): 
     
-    if experiment == 'so':
+    if experiment == 'so_lat':
         specs_dic = {
             #freq: [beam_arcmins, white_noise, red_noise, elknee, alphaknee] 
             27:  [7.4, 52.1, 6.1,  1000, -3.5],
@@ -21,7 +21,7 @@ def specs(experiment):
         corr_noise_bands = {27:[39], 39:[27], 93:[145], 145:[93], 225: [280], 280: [225]}
         rho = 0.9
             
-    if experiment == 'ccatp':
+    if experiment == 'so_lat_fyst':
         specs_dic = {
             #freq: [beam_arcmins, white_noise, red_noise, elknee, alphaknee] 
             27:  [7.4, 52.1, 6.1,  1000, -3.5],
@@ -37,7 +37,6 @@ def specs(experiment):
             }
         corr_noise_bands = {27:[39], 39:[27], 93:[145], 145:[93], 220: [220], 225: [279.999999], 279.999999: [225], 280:[280], 350:[350], 410:[410]}   
         rho = 0.9
-  
     
     if experiment == 's4wide':
         specs_dic = {

@@ -165,3 +165,106 @@ def power_spectra(map_params, image, image2 = None, binsize = None):
     l, psd = radial_profile(image_psd, grid, bin_min = 0, bin_max = 10000, bin_size = bin_size)
 
     return l, psd
+
+
+def get_pixels_to_mask(map_params, disk_rad_am, square_mask = False):
+
+    """
+    returns pixels that must be masked in a map given radius.
+    supports both circular and square shapes.
+
+    Parameters:
+    -----------
+    map_params: list
+        nx, ny, dx
+        ny, nx = image.shape
+        dx = pixel resolution in arcminutes
+
+    disk_rad_am: float
+        radius of the mask beyond which pixels must be masked.
+
+    square_mask: bool
+        apply sqaure/circular mask.
+        defaulta is False and a circular mask will be used.    
+
+    Returns:
+    --------
+    pixels_to_mask: array
+        pixels to be maked
+    """
+
+    xgrid, ygrid = get_xygrid(map_params)
+    if not square_mask:
+        radius_grid = get_radius(grid = (xgrid, ygrid))
+    else:
+        radius_grid = np.copy(xgrid)
+
+    pixels_to_mask = np.where( radius_grid >= disk_rad_am)
+
+    return pixels_to_mask
+
+def get_xygrid(map_params):
+
+    """
+    returns x and y grids given map parameters.
+
+    Parameters:
+    -----------
+    map_params: list
+        nx, ny, dx
+        ny, nx = image.shape
+        dx = pixel resolution in arcminutes
+
+    Returns:
+    --------
+    xgrid, ygrid: array
+        x and y grid in arcminutes
+    """
+
+    nx, ny, dx = map_params
+    x1, x2 = -nx*dx/2., nx*dx/2.
+    y1, y2 = -ny*dx/2., ny*dx/2.
+
+    x = np.linspace(x1, x2, nx)
+    y = np.linspace(y1, y2, ny)
+
+    xgrid, ygrid = np.meshgrid(x, y)
+
+    return xgrid, ygrid
+
+def get_radius(image = None, grid = None):
+
+    """
+    returns radius grid given an image and x/y grids.
+
+    Parameters:
+    -----------
+    image: array
+        input map
+        default is None.
+        In this case grid must be supplied.
+
+    grid: list
+        x, y = grid
+        default is None in which case we will calculate
+            grid (in pixel space) from image automatically.
+            Note that we  will not pixel resolution information
+            in this case.
+
+    Returns:
+    --------
+    radius: array
+        radius grid. Simply np.hypot(x, y)
+    """
+
+    if grid is None:
+        y, x = np.indices((image.shape))
+        center = np.array([(x.max()-x.min())/2, (x.max()-x.min())/2])
+        radius = np.hypot(x-center[0], y-center[1])
+    else:
+        x, y = grid
+        radius = np.hypot(x, y)
+
+    return radius
+
+

@@ -67,7 +67,7 @@ def get_clinv(clmat):
     return clinv
 
 
-def residuals_and_weights(map_dic = None, mapparams = None, components = 'all', experiment = None, cov_from_sims = True): 
+def residuals_and_weights(map_dic = None, map_params = None, components = 'all', experiment = None, cov_from_sims = True): 
     
     if cov_from_sims is True:
         specs_dic, corr_noise_bands, rho = exp.specs(experiment)
@@ -75,7 +75,7 @@ def residuals_and_weights(map_dic = None, mapparams = None, components = 'all', 
         l, cl_dic = power_spectra_dic(components = components, experiment = experiment)
     else:
         freq_arr = sorted(map_dic.keys())
-        l, cl_dic = power_spectra_dic(map_dic, mapparams) 
+        l, cl_dic = power_spectra_dic(map_dic, map_params) 
     a_cmb = np.mat(np.ones(len(freq_arr))).T 
     cl_residual = np.zeros(len(l))
     weights = np.zeros((len(freq_arr), 1, len(l)))
@@ -196,6 +196,6 @@ def ilc_map(map_dic, opbeam, map_params, experiment, components = 'all', cov_fro
         map_weighted = np.fft.fft2(curr_map) * rebeamed_weights_arr[mm]
         weighted_maps_arr.append(map_weighted)
     ilc_map_fft = np.sum(weighted_maps_arr, axis = 0)
-    ilc_map = np.fft.ifft2(ilc_map_fft).real
+    ilc_map_ = np.fft.ifft2(ilc_map_fft).real
 
-    return ilc_map, res_weights
+    return ilc_map_

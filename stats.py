@@ -70,23 +70,25 @@ def likelihood_finer_resol(M, L, delta=0.001):
     return M_ip, L_ip
 
 
-def likelihood_function(data, models, param_int, make_finer = 1):
+def likelihood_function(data, models, param_int, make_finer = 1, normalize = True):
     x, y, cov = data 
     ln_like = []
     for i in range(len(models)):
         diff = (y - models[i]).flatten()
-        chi_2 = np.dot(diff.flatten(), np.linalg.solve(cov, diff.flatten()))
+        chi_2 = np.dot(diff.T, np.dot(np.linalg.pinv(cov), diff))#np.dot(diff.flatten(), np.linalg.solve(cov, diff.flatten()))
         ln_L =  -0.5*chi_2
         ln_like.append(ln_L)
     ln_like = ln_like - max(ln_like) 
     L = np.exp(ln_like)
-    L /= max(L)   
+    if normalize is True:
+        L /= max(L)   
     if make_finer: 
         x_ip, L_ip = likelihood_finer_resol(param_int, L) 
     else:
         x_ip = np.copy(param_int)
         L_ip = np.copy(L)
-    L_ip /= max(L_ip) 
+    if normalize is True:    
+        L_ip /= max(L_ip) 
     return x_ip, L_ip
 
 
@@ -109,8 +111,8 @@ def ml_params(x, likelihood_curve, nsamples = 1000000, burn_in = 5000):
     return median_value, error
 
 
-def run_ml(data, models, param_int, make_finer = 1, nsamples = 1000000, burn_in = 5000):
-    x, likelihood_curve = likelihood_function(data,  models, param_int)
+def run_ml(data, models, param_int, make_finer = 1, normalize = True, nsamples = 1000000, burn_in = 5000):
+    x, likelihood_curve = likelihood_function(data,  models, param_int, make_finer = make_finer, normalize = normalize)
     likelihood = [x, likelihood_curve]
     median_value, error = ml_params(x, likelihood_curve, nsamples = nsamples, burn_in = burn_in)
     return likelihood, median_value, error
@@ -160,11 +162,12 @@ def run_mcmc(data, guess, offset, nwalkers, priors, nber_steps, burn_in):
 #################################################################################################################################
 
 
-def combined_likelihood(x, likelihood_arr):
+def combined_likelihood(x, likelihood_arr, normalize = True):
     comb_lk = np.ones(len(likelihood_arr[0]))
     for i in range(len(likelihood_arr)):
         comb_lk *= likelihood_arr[i]
-    comb_lk = comb_lk/max(comb_lk)
+    if normalize is True:
+        comb_lk = comb_lk/max(comb_lk)
     median_value, error = ml_params(x, comb_lk)      
     return comb_lk, median_value, error
 

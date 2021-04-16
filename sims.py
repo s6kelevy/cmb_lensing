@@ -10,6 +10,7 @@ import lensing
 import foregrounds as fg
 import experiments as exp
 import tools
+import ilc
 
 
 #################################################################################################################################
@@ -210,7 +211,7 @@ def cmb_test_data(map_params, l, cl, cluster = None, centroid_shift_value = 0, c
             tsz_cutouts.append(tsz_cutout)
             ksz_cutout = cutouts[keyname]['ksz']*random.randrange(-1, 2, 2)
             ksz_cutouts.append(ksz_cutout)
-        nx, dx, ny, dy = mapparams
+        nx, dx, ny, dy = map_params
         s, e = int((nx-40)/2), int((ny+40)/2)
 
         sims_clus_baseline, sims_clus_tsz, sims_clus_ksz, sims_clus_tsz_ksz = [], [], [], []
@@ -242,3 +243,111 @@ def cmb_test_data(map_params, l, cl, cluster = None, centroid_shift_value = 0, c
             sims_clus_ksz.append(sim_lensed_ksz)
             sims_clus_tsz_ksz.append(sim_lensed_tsz_ksz)             
         return sims_clus_baseline, sims_clus_tsz, sims_clus_ksz, sims_clus_tsz_ksz
+    
+    
+def cmb_forecast_data(experiment, freq_arr, map_params, l, cl, cluster = None, cluster_corr_cutouts = None, cl_residual = None, bl_arr = None, opbeam = None, nber_obs = 1):
+   
+    
+    # obtaining weights     
+    res_weights = ilc.residuals_and_weights(map_params = map_params, components = 'all', experiment = experiment, cov_from_sims = True) 
+    l, cl_residual, res_ilc_dic, weights_arr = res_weights
+   
+    # rebeaming
+    l, bl_dic = exp.beam_power_spectrum_dic(experiment = experiment, opbeam = opbeam)
+    bl_rebeam_arr = exp.rebeam(bl_dic)
+
+    # computing 2D versions 
+    grid, _ = tools.make_grid(map_params, Fourier = True)
+    weights_arr_2D = []
+    for currW in weights_arr:
+        l = np.arange(len(currW)) 
+        currW_2D = tools.convert_to_2d(grid, l, currW)
+        weights_arr_2D.append(currW_2D)
+    weights_arr_2D = np.asarray( weights_arr_2D )
+    
+    rebeam_arr_2D = []
+    for currB in bl_rebeam_arr:
+        l = np.arange(len(currB))
+        currB_2D = tools.convert_to_2d(grid, l, currB)
+        rebeam_arr_2D.append(np.sqrt(currB_2D))
+    rebeam_arr_2D = np.asarray( rebeam_arr_2D )
+        
+    # modify weights to include rebeam
+    rebeamed_weights_arr = rebeam_arr_2D*weights_arr_2D
+
+    nx, dx, ny, dy = map_params
+    s, e = int((nx-40)/2), int((ny+40)/2)    
+        
+    if cluster is not None: 
+        kappa_map = lensing.NFW(cluster[0], cluster[1], cluster[2], 1100).convergence_map(map_params) 
+        alpha_vec = lensing.deflection_from_convergence(map_params, kappa_map)   
+    if opbeam is not None:  
+        l, bl_op = exp.beam_power_spectrum(beam_fwhm = opbeam)
+    
+    sims_arr = []
+    
+    for i in range(nber_obs):
+        sim = tools.make_gaussian_realization(map_params, l, cl) 
+        if cluster is not None: 
+            sim = lensing.lens_map(map_params, sim, alpha_vec)
+        if cl_residual is not None:
+            residual_noise_map = tools.make_gaussian_realization(map_params, l, cl_residual)
+            sim += residual_noise_map   
+        if opbeam is not None:  
+            sim = tools.convolve(sim, l, np.sqrt(bl_op), map_params = map_params)
+        
+        if cluster_corr_cutouts is not None:
+            import sys
+            print('Stop')
+            sys.exit()
+            tsz_ksz_cutout = tools.rotate(cluster_corr_cutouts[random.randint(0, len(cluster_corr_cutouts)-1)],
+                                          random.randint(-180,180))
+            tsz_ksz_arr = [np.copy(tsz_ksz_cutout) for k in range(len(freq_arr))]
+            for v in range(len(freq_arr)):
+                tsz_ksz_arr[v] *= fg.compton_y_to_delta_Tcmb(freq_arr[v], uK = True)
+                tsz_ksz_arr[v] = tools.convolve(np.pad(tsz_ksz_arr[v], (100, 100), 'constant', constant_values=(0, 0)), l, np.sqrt(bl_arr[v]), map_params = map_params)
+            # compute ilc map 
+            weighted_maps_arr = []
+            for mm in range(len(tsz_ksz_arr)):
+                curr_map = tsz_ksz_arr[mm]
+                rebeamed_weights_arr[mm][np.isnan(rebeamed_weights_arr[mm])]=0.
+                rebeamed_weights_arr[mm][np.isinf(rebeamed_weights_arr[mm])]=0.
+                map_weighted = np.fft.fft2(curr_map) * rebeamed_weights_arr[mm]
+                weighted_maps_arr.append(map_weighted)
+            ilc_map_fft = np.sum(weighted_maps_arr, axis = 0)
+            ilc_map = np.fft.ifft2(ilc_map_fft).real
+            sim[s:e, s:e] = sim[s:e, s:e] + ilc_map[s:e, s:e]
+        sims_arr.append(sim)
+    
+    return sims_arr
+
+
+
+def cmb_forecast_test_data(map_params, l, cl, cluster = None, cl_residuals = None, bl = None, nber_obs = 1):
+        
+    if cluster is not None: 
+        kappa_map = lensing.NFW(cluster[0], cluster[1], cluster[2], 1100).convergence_map(map_params) 
+        alpha_vec = lensing.deflection_from_convergence(map_params, kappa_map)   
+   
+    sims_arr_so, sims_arr_fyst, sims_arr_s4wide = [], [], []
+    
+    for i in range(nber_obs):
+        sim = tools.make_gaussian_realization(map_params, l, cl) 
+        if cluster is not None: 
+            sim = lensing.lens_map(map_params, sim, alpha_vec)
+        sim_so, sim_fyst, sim_s4wide = np.copy(sim), np.copy(sim), np.copy(sim)
+        if cl_residuals is not None:
+            residual_noise_map_so = tools.make_gaussian_realization(map_params, l, cl_residuals[0])
+            sim_so += residual_noise_map_so   
+            residual_noise_map_fyst = tools.make_gaussian_realization(map_params, l, cl_residuals[1])
+            sim_fyst += residual_noise_map_fyst      
+            residual_noise_map_s4wide = tools.make_gaussian_realization(map_params, l, cl_residuals[2])
+            sim_s4wide += residual_noise_map_s4wide              
+        if bl is not None:  
+            sim_so = tools.convolve(sim_so, l, np.sqrt(bl), map_params = map_params)
+            sim_fyst = tools.convolve(sim_fyst, l, np.sqrt(bl), map_params = map_params)
+            sim_s4wide = tools.convolve(sim_s4wide, l, np.sqrt(bl), map_params = map_params)   
+        sims_arr_so.append(sim_so)
+        sims_arr_fyst.append(sim_fyst)
+        sims_arr_s4wide.append(sim_s4wide)
+    return sims_arr_so, sims_arr_fyst, sims_arr_s4wide
