@@ -107,7 +107,7 @@ def lensing_dipole(map_params, stack_clus, stack_bg, stack_tsz = None, circular_
     return bins, profile_lensing_dipole, stack_dipole
     
     
-def covariance_and_correlation_matrix(nber_cov, nber_clus, map_params, l, cl, freq_arr = None, cluster_corr_cutouts = None, cl_extragal = None, bl = None, nl = None, opbeam = None, experiment = None, components = 'all', cutout_size_am = 10, l_cut  = 2000, cl_noise = None, use_magnitude_weights = True, noise_weights = None, correct_for_tsz = False):
+def covariance_and_correlation_matrix(nber_cov, nber_clus, map_params, l, cl, cluster_corr_cutouts = None, cl_extragal = None, bl = None, nl = None, experiment = None, components = 'all', cutout_size_am = 10, l_cut  = 2000, cl_noise = None, use_magnitude_weights = True, noise_weights = None, correct_for_tsz = False):
  
     
     sims_for_covariance = []
@@ -117,7 +117,7 @@ def covariance_and_correlation_matrix(nber_cov, nber_clus, map_params, l, cl, fr
             maps_clus = sims.cmb_mock_data(map_params, l, cl, cluster_corr_cutouts = cluster_corr_cutouts,
                                            cl_extragal = cl_extragal, bl = bl, nl = nl, nber_obs = nber_clus)
         else:
-            maps_clus = sims.cmb_forecast_data(experiment = experiment, freq_arr = freq_arr, map_params = map_params, l = l, cl = cl, cluster_corr_cutouts = cluster_corr_cutouts, cl_residual = cl_noise, bl_arr = bl, opbeam = opbeam, nber_obs = nber_clus)
+            maps_clus = sims.cmb_forecast_data(experiment = experiment, map_params = map_params, l = l, cl = cl, cl_residual = cl_noise, bl = bl, nber_obs = nber_clus)
                
    
         if correct_for_tsz is False:
@@ -152,13 +152,13 @@ def model_profiles(nber_fit, map_params, l, cl, mass_int, z, centroid_shift_valu
         x_shift, y_shift = np.random.normal(loc=0.0, scale = centroid_shift_value), np.random.normal(loc=0.0, scale =
                                                                                                      centroid_shift_value) 
         centroid_shift = [x_shift, y_shift]
+        total_noise_map = tools.make_gaussian_realization(map_params, l, cl_noise)       
         for j in range(len(mass_int)):
             c200c = cosmo.concentration_parameter(mass_int[j], z, 0.674)
             kappa_map = lensing.NFW(mass_int[j], c200c, z, 1100).convergence_map(map_params, centroid_shift = centroid_shift)
             alpha_vec = lensing.deflection_from_convergence(map_params, kappa_map)
             sim_lensed = lensing.lens_map(map_params, sim, alpha_vec)     
             sim_lensed_noise = np.copy(sim_lensed)
-            total_noise_map = tools.make_gaussian_realization(map_params, l, cl_noise)
             sim_lensed_noise += total_noise_map
             if bl is not None:
                 sim_lensed = tools.convolve(sim_lensed, l, np.sqrt(bl), map_params = map_params)
