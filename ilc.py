@@ -67,7 +67,29 @@ def get_clinv(clmat):
     return clinv
 
 
-def residuals_and_weights(map_dic = None, map_params = None, components = 'all', experiment = None, cov_from_sims = True): 
+def get_mixing_vector(freq_arr, final_component = 'cmb'):
+
+    if final_component == 'cmb':
+        freqscale_fac = np.ones(len(freq_arr))
+
+    elif final_component == 'tsz':
+
+        freqscale_fac = []
+        for freq in sorted(freq_arr):
+            freqscale_fac.append(fg.compton_y_to_delta_Tcmb(freq))
+
+        freqscale_fac = np.asarray(freqscale_fac)
+        #freqscale_fac = freqscale_fac / freqscale_fac[1]
+
+    a = np.zeros(len(freq_arr)) + freqscale_fac 
+    a = np.mat(a).T 
+    print(a)
+    print('')
+
+    return a
+    
+
+def residuals_and_weights(map_dic = None, map_params = None, final_component = 'cmb', components = 'all', experiment = None, cov_from_sims = True): 
     
     if cov_from_sims is True:
         specs_dic, corr_noise_bands, rho = exp.specs(experiment)
@@ -76,14 +98,16 @@ def residuals_and_weights(map_dic = None, map_params = None, components = 'all',
     else:
         freq_arr = sorted(map_dic.keys())
         l, cl_dic = power_spectra_dic(map_dic, map_params) 
-    a_cmb = np.mat(np.ones(len(freq_arr))).T 
+     
+    a = get_mixing_vector(freq_arr, final_component = final_component)
+    
     cl_residual = np.zeros(len(l))
     weights = np.zeros((len(freq_arr), 1, len(l)))
     for i in range(len(l)):
         clmat = create_clmat(freq_arr, i, cl_dic) 
         clinv = get_clinv(clmat)
-        num = np.dot(clinv, a_cmb) 
-        den = np.dot(a_cmb.T, np.dot(clinv, a_cmb))
+        num = np.dot(clinv, a) 
+        den = np.dot(a.T, np.dot(clinv, a))
         cl_residual[i] = np.linalg.pinv(den)
         weights[:, :,i] = np.dot(num, cl_residual[i])  
       
@@ -196,6 +220,6 @@ def ilc_map(map_dic, opbeam, map_params, experiment, components = 'all', cov_fro
         map_weighted = np.fft.fft2(curr_map) * rebeamed_weights_arr[mm]
         weighted_maps_arr.append(map_weighted)
     ilc_map_fft = np.sum(weighted_maps_arr, axis = 0)
-    ilc_map_ = np.fft.ifft2(ilc_map_fft).real
+    ilc_map = np.fft.ifft2(ilc_map_fft).real
 
-    return ilc_map_
+    return ilc_map
