@@ -79,12 +79,9 @@ def get_mixing_vector(freq_arr, final_component = 'cmb'):
             freqscale_fac.append(fg.compton_y_to_delta_Tcmb(freq))
 
         freqscale_fac = np.asarray(freqscale_fac)
-        #freqscale_fac = freqscale_fac / freqscale_fac[1]
 
     a = np.zeros(len(freq_arr)) + freqscale_fac 
     a = np.mat(a).T 
-    print(a)
-    print('')
 
     return a
     
